@@ -31,14 +31,14 @@ from road_identification import clean_data, identify_roller_pixels, interpolate_
 from detections import detect_high_gradient_pixels, detect_temperatures_below_moving_average
 from readers import readers
 from cli import _iter_segments
-
+import nrn_functions #funktioner lavet primært til streamlit app
 # st.set_page_config(page_title=None, layout="wide")
 
 st.markdown('# Roadtherma user interface')
 st.write('Program for analysing thermal data obtained during road paving\n')
 st.divider()
 #logo i sidebar
-logo_image = Image.open('vdlogo_blaa.png')
+logo_image = Image.open('vdlogo_hvid.png')
 st.sidebar.image(logo_image, caption=None, width=250)
 
 #%%If we want to get the jobs file as in the original road therma script and save it as a config dictionary, this is tehe way:
@@ -234,7 +234,7 @@ if run_trimming_checkbox:
     temperatures_trimmed, trim_result, lane_result, roadwidths = clean_data(temperatures, metadata, config)
     
     #-- herunder plottes rådata og trimmed data ud fra de parametre der sættes
-    import nrn_functions
+    
     fig_heatmaps, (ax1, ax2) = plt.subplots(ncols=2, sharey = True)
     plt.suptitle('Raw data', fontsize=10)
     ax1.set_title('All data'); ax2.set_title('Trimmed data')
@@ -367,95 +367,191 @@ st.write('When the analysis is good enough, the result can be saved by clicking 
 st.markdown(":red[Vil vi gemme figurerne også?]")
 #----- 
 
-def submit_save_func():
-    #Denne funktion udføres når der kligges på submin knappen. 
-    #At gemme det i en funktion gør at det kun gøres når der klikkes på submit knappen og ikke ellers. 
-    if st.session_state.save_raw_temp:
-        # df = nrn_functions.temperature_to_csv( temperatures_trimmed, metadata, road_pixels)
-        txt = st.session_state.save_path+'\\raw_temp_on_road.csv'
-        save_raw_temp_df.to_csv(txt)
-        # st.write('file saved as {}'.format(txt))
-        
-    if st.session_state.save_ma_detections:
-        txt = save_path+'\\moving_average_detections.csv'
-        # df = nrn_functions.detections_to_csv( temperatures_trimmed, metadata, road_pixels, moving_average_pixels)
-        save_ma_detections_df.to_csv(txt)
-        # st.write('file saved as {}'.format(txt))
-        
-    if st.session_state.save_gradient_detections:
-        txt = save_path+'\\gradient_detections.csv'
-        # df = nrn_functions.detections_to_csv( temperatures_trimmed, metadata, road_pixels, gradient_pixels)
-        save_gradient_detections_df.to_csv(txt)
-
-    if st.session_state.save_mean_temp:
-        txt = save_path+'\\mean_temperatures.csv'
-        # df = temperature_mean_to_csv(temperatures_trimmed, road_pixels)
-        save_mean_temp_df.to_csv(txt)
-
-    
-
+#Herunder er gemme funktion lavet med download knapper
 if run_script_checkbox:
-    with st.form('save output'):
-        save_path = st.text_input('File location to save csv files', key='save_path')#gemmes som st.session_state.save_path
-        
-        st.write(' Check the box for the files you which to save ')
-        save_raw_temp = st.checkbox('Save raw temperatures in pixels belonging to road', value=False, key='save_raw_temp')
-        with st.expander('See dataframe before saving'):
-            save_raw_temp_df = nrn_functions.temperature_to_csv( temperatures_trimmed, metadata, road_pixels)
-            st.dataframe(save_raw_temp_df)
-            
-        save_ma_detections = st.checkbox('Save all pixels categorized as either non-road, road or detected as having a temperature below a moving average.',
-                                         value=False, key = 'save_ma_detections')
-        with st.expander('See dataframe before saving'):
-            save_ma_detections_df = nrn_functions.detections_to_csv( temperatures_trimmed, metadata, road_pixels, moving_average_pixels)
-            st.dataframe(save_ma_detections_df)
-            
-        save_gradient_detections= st.checkbox('Save all pixels categorized as either non-road, road or gradient', value=False,
-                                              key='save_gradient_detections')
-        with st.expander('See dataframe before saving'):
-            save_gradient_detections_df = nrn_functions.detections_to_csv( temperatures_trimmed, metadata, road_pixels, gradient_pixels)
-            st.dataframe(save_gradient_detections_df)
-            
-        save_mean_temp = st.checkbox('Save the mean temperature for each distance', value=False, key='save_mean_temp')
-        with st.expander('See dataframe before saving'):
-            save_mean_temp_df = nrn_functions.temperature_mean_to_csv(temperatures_trimmed, road_pixels)
-            st.dataframe(save_mean_temp_df)
-        
-        save_configuration_file =st.checkbox('Save the used parameter values in a configuration file. This enables usto run the exact same analysis again.',
-                                             value=False, key='save_configuration_file')
-        with st.expander('See configuration file before saving'):
-            st.write(config)
-        
-        save_submitted = st.form_submit_button('Save the chosen files', on_click=submit_save_func)
-    #END form 
-   
-    # #Herunder printes hvilke ting der er gemt i formen 
-    if save_raw_temp:
-        txt = st.session_state.save_path+'\\raw_temp_on_road.csv'
-        st.write('file saved as {}'.format(txt))
-        
-    if save_ma_detections:
-        txt = save_path+'\\moving_average_detections.csv'
-        st.write('file saved as {}'.format(txt))
-        
-    if save_gradient_detections:
-        txt = save_path+'\\gradient_detections.csv'
-        st.write('file saved as {}'.format(txt))
-        
-    if st.session_state.save_mean_temp:
-        txt = save_path+'\\mean_temperatures.csv'
-        st.write('file saved as {}'.format(txt))
-        
-    if save_configuration_file:
-        txt = save_path+'\configuration_values.json'
-        txt = save_path+'\configuration_values.json'
-        with open(txt, 'w') as f:
-            json.dump(config, f, indent=1)
-        st.write('configuration information file is saved at {}'.format(txt))
-
-        
+    @st.cache_data
+    def convert_df(df):
+        # IMPORTANT: Cache the conversion to prevent computation on every rerun
+        return df.to_csv().encode('utf-8')
     
-st.markdown(':red[man kan også lave en download knap istedet hvis det er bedre.] ')
+    #raw temperatures in pixels belonging to road
+    save_raw_temp_df = nrn_functions.temperature_to_csv( temperatures_trimmed, metadata, road_pixels)
+    c1, c2, c3 = st.columns([0.1, 0.6, 0.3])
+    with c2:
+        st.write('Save raw temperatures in pixels belonging to road')
+    with c3:
+        save_name = st.text_input('output name', value='raw_temp_on_road.csv')
+            
+    with c1:
+        st.download_button(
+            label='Save',
+            data = convert_df(save_raw_temp_df),
+            file_name=save_name,
+            mime = 'text/csv'
+            )
+    with st.expander('See dataframe before saving'):
+        st.dataframe(save_raw_temp_df)
+    
+    #Save all pixels categorized as either non-road, road or detected as having a temperature below a moving average
+    st.write('#')#laver luft imellem knapperne
+    save_ma_detections_df = nrn_functions.detections_to_csv( temperatures_trimmed, metadata, road_pixels, moving_average_pixels)
+    c1, c2, c3 = st.columns([0.1, 0.6, 0.3])
+    with c3:
+        save_name1 = st.text_input('output name', value='moving_average_detections.csv')
+    with c1:
+        st.download_button(
+            label='Save',
+            data = convert_df(save_ma_detections_df),
+            file_name=save_name1,
+            mime = 'text/csv'
+            )
+    with c2:
+        st.write('Save all pixels categorized as either non-road, road or detected as having a temperature below a moving average')
+    with st.expander('See dataframe before saving'):
+        st.dataframe(save_ma_detections_df)
+        
+    #Save all pixels categorized as either non-road, road or gradient
+    st.write('#')
+    save_gradient_detections_df = nrn_functions.detections_to_csv( temperatures_trimmed, metadata, road_pixels, gradient_pixels)
+    c1, c2, c3 = st.columns([0.1, 0.6, 0.3])
+    with c2:
+        st.write('Save all pixels categorized as either non-road, road or gradient')
+    with c3:
+        save_name2 = st.text_input('output name', value='gradient_detections.csv')
+    with c1:
+        st.download_button(
+            label='Save',
+            data = convert_df(save_gradient_detections_df),
+            file_name=save_name2,
+            mime = 'text/csv'
+            )
+    with st.expander('See dataframe before saving'):
+        st.dataframe(save_gradient_detections_df)
+        
+    #Save the mean temperature for each distance
+    st.write('#')
+    save_mean_temp_df = nrn_functions.temperature_mean_to_csv(temperatures_trimmed, road_pixels)
+    c1, c2, c3 = st.columns([0.1, 0.6, 0.3])
+    with c2:
+        st.write('Save the mean temperature for each distance')
+    with c3:
+        save_name3 = st.text_input('output name', value='mean_temperatures.csv')
+    with c1:
+        st.download_button(
+            label='Save',
+            data = convert_df(save_mean_temp_df),
+            file_name=save_name3,
+            mime = 'text/csv'
+            )
+    with st.expander('See dataframe before saving'):
+        
+        st.dataframe(save_mean_temp_df)
+    
+    #Save config file Save the used parameter values in a configuration file. This enables usto run the exact same analysis again.
+    st.write('#')
+    config_json = json.dumps(config, indent=1)
+    c1, c2, c3 = st.columns([0.1, 0.6, 0.3])
+    with c2: 
+        st.write('Save the used parameter values in a configuration file. This enables usto run the exact same analysis again.')
+    with c3:
+        save_name4 = st.text_input('output name', value='configuration_values.json')
+    with c1:
+        st.download_button(
+            label='Save',
+            file_name=save_name4,
+            mime = "application/json",
+            data = config_json
+            )
+    with st.expander('See configuration file before saving'):
+        st.write(config)
+    
+#%% Herunder er gemme funktionen der virker med en output sti. Dette virker kun når scriptet køres lokalt på en computer
+
+# def submit_save_func():
+#     #Denne funktion udføres når der kligges på submin knappen. 
+#     #At gemme det i en funktion gør at det kun gøres når der klikkes på submit knappen og ikke ellers. 
+#     if st.session_state.save_raw_temp:
+#         # df = nrn_functions.temperature_to_csv( temperatures_trimmed, metadata, road_pixels)
+#         txt = st.session_state.save_path+'\\raw_temp_on_road.csv'
+#         save_raw_temp_df.to_csv(txt)
+#         # st.write('file saved as {}'.format(txt))
+        
+#     if st.session_state.save_ma_detections:
+#         txt = save_path+'\\moving_average_detections.csv'
+#         # df = nrn_functions.detections_to_csv( temperatures_trimmed, metadata, road_pixels, moving_average_pixels)
+#         save_ma_detections_df.to_csv(txt)
+#         # st.write('file saved as {}'.format(txt))
+        
+#     if st.session_state.save_gradient_detections:
+#         txt = save_path+'\\gradient_detections.csv'
+#         # df = nrn_functions.detections_to_csv( temperatures_trimmed, metadata, road_pixels, gradient_pixels)
+#         save_gradient_detections_df.to_csv(txt)
+
+#     if st.session_state.save_mean_temp:
+#         txt = save_path+'\\mean_temperatures.csv'
+#         # df = temperature_mean_to_csv(temperatures_trimmed, road_pixels)
+#         save_mean_temp_df.to_csv(txt)
+
+    
+
+# if run_script_checkbox:
+#     with st.form('save output'):
+#         save_path = st.text_input('File location to save csv files', key='save_path')#gemmes som st.session_state.save_path
+        
+#         st.write(' Check the box for the files you which to save ')
+#         save_raw_temp = st.checkbox('Save raw temperatures in pixels belonging to road', value=False, key='save_raw_temp')
+#         with st.expander('See dataframe before saving'):
+#             save_raw_temp_df = nrn_functions.temperature_to_csv( temperatures_trimmed, metadata, road_pixels)
+#             st.dataframe(save_raw_temp_df)
+            
+#         save_ma_detections = st.checkbox('Save all pixels categorized as either non-road, road or detected as having a temperature below a moving average.',
+#                                          value=False, key = 'save_ma_detections')
+#         with st.expander('See dataframe before saving'):
+#             save_ma_detections_df = nrn_functions.detections_to_csv( temperatures_trimmed, metadata, road_pixels, moving_average_pixels)
+#             st.dataframe(save_ma_detections_df)
+            
+#         save_gradient_detections= st.checkbox('Save all pixels categorized as either non-road, road or gradient', value=False,
+#                                               key='save_gradient_detections')
+#         with st.expander('See dataframe before saving'):
+#             save_gradient_detections_df = nrn_functions.detections_to_csv( temperatures_trimmed, metadata, road_pixels, gradient_pixels)
+#             st.dataframe(save_gradient_detections_df)
+            
+#         save_mean_temp = st.checkbox('Save the mean temperature for each distance', value=False, key='save_mean_temp')
+#         with st.expander('See dataframe before saving'):
+#             save_mean_temp_df = nrn_functions.temperature_mean_to_csv(temperatures_trimmed, road_pixels)
+#             st.dataframe(save_mean_temp_df)
+        
+#         save_configuration_file =st.checkbox('Save the used parameter values in a configuration file. This enables usto run the exact same analysis again.',
+#                                              value=False, key='save_configuration_file')
+#         with st.expander('See configuration file before saving'):
+#             st.write(config)
+        
+#         save_submitted = st.form_submit_button('Save the chosen files', on_click=submit_save_func)
+#     #END form 
+   
+#     # #Herunder printes hvilke ting der er gemt i formen 
+#     if save_raw_temp:
+#         txt = st.session_state.save_path+'\\raw_temp_on_road.csv'
+#         st.write('file saved as {}'.format(txt))
+        
+#     if save_ma_detections:
+#         txt = save_path+'\\moving_average_detections.csv'
+#         st.write('file saved as {}'.format(txt))
+        
+#     if save_gradient_detections:
+#         txt = save_path+'\\gradient_detections.csv'
+#         st.write('file saved as {}'.format(txt))
+        
+#     if st.session_state.save_mean_temp:
+#         txt = save_path+'\\mean_temperatures.csv'
+#         st.write('file saved as {}'.format(txt))
+        
+#     if save_configuration_file:
+#         txt = save_path+'\configuration_values.json'
+#         txt = save_path+'\configuration_values.json'
+#         with open(txt, 'w') as f:
+#             json.dump(config, f, indent=1)
+#         st.write('configuration information file is saved at {}'.format(txt))
 
 
 #%%
