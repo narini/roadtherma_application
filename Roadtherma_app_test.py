@@ -38,7 +38,7 @@ st.markdown('# Roadtherma user interface')
 st.write('Program for analysing thermal data obtained during road paving\n')
 st.divider()
 #logo i sidebar
-logo_image = Image.open('vdlogo_hvid.png')
+logo_image = Image.open('vdlogo_blaa.png')
 st.sidebar.image(logo_image, caption=None, width=250)
 
 #%%If we want to get the jobs file as in the original road therma script and save it as a config dictionary, this is tehe way:
@@ -86,7 +86,7 @@ if config_values_available:
     config_values_path = st.sidebar.file_uploader('Upload file with configuration values. OBS: right now this only work with json files created in this program. Do we want a function with yaml files aswell?') 
     if config_values_path is not None:
         config_values = json.load(config_values_path)
-        st.write(config_values)
+        st.sidebar.write(config_values)
         #Overskriver parameterværdier i config_default_values med den fra config_values
         for k in config_default_values.keys():
             if k in config_values.keys():
