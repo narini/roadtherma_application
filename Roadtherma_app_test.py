@@ -6,7 +6,6 @@ Created on Fri Jan 26 15:00:27 2024
 """
 #-----------------
 #ANGIV version af programmet. Ændres hvis der sker store ændringer. Dette nummer skrives med i configuration filerne
-version = 'version 0.1 - test fase'
 #------------------
 
 import streamlit as st 
@@ -35,7 +34,9 @@ import nrn_functions #funktioner lavet primært til streamlit app
 # st.set_page_config(page_title=None, layout="wide")
 
 st.markdown('# Roadtherma user interface')
-st.write('Program for analysing thermal data obtained during road paving\n')
+st.write('')
+st.markdown('Program for analysing thermal data obtained durindddg road paving\n'  
+            ' *This version is a prototype for testing*')
 st.divider()
 #logo i sidebar
 logo_image = Image.open('vdlogo_blaa.png')
@@ -65,9 +66,8 @@ st.sidebar.image(logo_image, caption=None, width=250)
 # Default jobs værdier
 config = {} #starter en ny config dictionary hvis alle værdierne kommer fra App. 
 config['Date of analysis'] = date.today().strftime('%Y-%m-%d')
-config['version'] = version
 config_default_values = {'pixel_width':0.25, 'roadwidth_threshold':50, 'autotrim_temperature':40, 'lane_threshold': 150,
-                         'roller_detect_enabled':False, 'roller_detect_temperature':50, 'roller_detect_interpolation':True,
+                         'roller_detect_enabled':False, 'roller_detect_temperature':50, 'roller_detect_interpolation':False,
                          'gradient_enabled':True, 'gradient_tolerance':10, 'plotting_segments':1, 'show_plots':True,
                          'save_figures':True, 'write_csv':True,'autotrim_enabled':False, 'autotrim_percentage':0.2,
                          'roadwidth_adjust_left': 1, 'roadwidth_adjust_right':1, 'lane_enabled':True,'moving_average_enabled':True,
@@ -94,40 +94,48 @@ if config_values_available:
 #----
         
 #herunder skrives parameterværdierne ind. 
-config['pixel_width'] =  st.sidebar.number_input('Pixel width in meters.', value=config_default_values['pixel_width'])
+if config_default_values['pixel_width'] == 0.25:  index_default = 0 
+elif config_default_values['pixel_width'] == 0.03:  index_default = 1
+config['pixel_width'] = st.sidebar.selectbox('Pixel width in meters.', [0.25, 0.03], index=index_default)
+if config['pixel_width'] == 0.25: config_default_values['roadwidth_adjust_left']=1; config_default_values['roadwidth_adjust_right']=1
+if config['pixel_width'] == 0.03: config_default_values['roadwidth_adjust_left']=8; config_default_values['roadwidth_adjust_right']=8
+
+
 config['roadwidth_threshold'] = st.sidebar.number_input('Threshold temperature used when estimating the road width (roadwidth_threshold)', value=config_default_values['roadwidth_threshold'], step=1) #roadwidth_threshold: 50 # Threshold temperature used when estimating the road width.
-config['autotrim_temperature'] = st.sidebar.number_input('Temperature threshold for the data trimming step (autotrim_temperature)', value=config_default_values['autotrim_temperature'], step=1) #autotrim_temperature: 40.0 # Temperature threshold for the data trimming step.
 config['lane_threshold'] = st.sidebar.number_input('Threshold temperature used when detecting the paving lane (lane_threshold)', value=config_default_values['lane_threshold'] , step=1)#     lane_threshold: 150.0      # Threshold temperature used when detecting the paving lane.
-config['roller_detect_enabled'] = st.sidebar.toggle('roller_detect_enabled. Whether or not to use roller_detection.', value=config_default_values['roller_detect_enabled']) #roller_detect_enabled: False  # Whether or not to use roller_detection.
-config['roller_detect_temperature'] = st.sidebar.number_input('roller_detect_temperature', value=config_default_values['roller_detect_temperature'] , step=1)#roller_detect_temperature: 50      # Threshold temperature used in roller-detection (road temperature pixels below this temperature is categorized as roller).
-config['roller_detect_interpolation'] = st.sidebar.toggle('roller_detect_interpolation',value=config_default_values['roller_detect_interpolation'] ) #roller_detect_interpolation: True  # If set to True the pixels identified as being the roller is interpolated with mean temperature of the road
 config['gradient_enabled'] = st.sidebar.toggle('gradient_enabled', value=config_default_values['gradient_enabled'] )#gradient_enabled: True             # Whether or not to make detections using the "gradient" method.
-config['gradient_tolerance'] = st.sidebar.number_input('gradient_tolerance', value=config_default_values['gradient_tolerance'] , step=1)# gradient_tolerance: 10.0 # Tolerance on the temperature difference during temperature gradient detection.
-    
-st.sidebar.divider(); st.sidebar.subheader('Special configuration options')
-config['plotting_segments'] = st.sidebar.number_input('plotting_segments', value=config_default_values['plotting_segments'] , step=1)# Number of segments that the data is partitioned into before being plotted. If set to 1 the entire dataset is plotted into figure (for each plot-type).
-config['show_plots'] = st.sidebar.toggle('show_plots', value=config_default_values['show_plots'] )# Whether or not to show plots of data cleaning and enabled detections. default=True
-config['save_figures'] = st.sidebar.toggle('save_figures', value=config_default_values['save_figures'] )# Whether or not to save the generated plots as png-files instead of showing them.
-config['write_csv'] = st.sidebar.toggle('write_csv', value=config_default_values['write_csv'] )# Whether or not to write csv files for post-analysis.
-config['autotrim_enabled'] = st.sidebar.toggle('autotrim_enabled', value=config_default_values['autotrim_enabled'])# Whether or not to use autotrimming. If set to False the values in the four manual_trim_* entries is used to crop the data.
-config['autotrim_percentage'] = st.sidebar.number_input('autotrim_percentage', value=config_default_values['autotrim_percentage'] )#autotrim_percentage: 0.2   # Percentage threshold of data below <autotrim_temperature> in order for an edge longitudinal line to be removed.TF_time
-config['roadwidth_adjust_left'] = st.sidebar.number_input('Additional number of pixels to cut off left edge after estimating road width (roadwidth_adjust_left)', value=config_default_values['roadwidth_adjust_left'] , step=1)
-config['roadwidth_adjust_right'] = st.sidebar.number_input('Additional number of pixels to cut off right edge after estimating road width ( roadwidth_adjust_right)', value=config_default_values['roadwidth_adjust_right'] , step=1)
-config['lane_enabled'] = st.sidebar.toggle('lane_enabled. Whether or not to try and identify lanes', value=config_default_values['lane_enabled'])# lane_enabled: True         # Whether or not to try and identify lanes.
-config['lane_to_use'] = st.sidebar.selectbox('Use the "coldest" or "warmest" lane for detections.', ['coldest', 'warmest'], index=1)#     lane_to_use: warmest       # Whether to use the "coldest" or "warmest" lane for detections.
-config['moving_average_enabled'] = st.sidebar.toggle('moving_average_enabled', value=config_default_values['moving_average_enabled'])#moving_average_enabled: True  # Whether or not to make detections using the "moving average" method.
-config['moving_average_window'] = st.sidebar.number_input('moving_average_window', value=config_default_values['moving_average_window'] , step=1)#moving_average_window: 100.0       # Windowsize in meter to calculate (centered) moving average.
-config['moving_average_percent'] = st.sidebar.number_input('moving_average_percent', value=config_default_values['moving_average_percent'])# moving_average_percent: 90.0       # Percentage used to detect low temperatures, i.e., road pixels where pixel < "percentage of moving average temperature"
+config['gradient_tolerance'] = st.sidebar.number_input('gradient_tolerance', value=config_default_values['gradient_tolerance'] , step=1)# gradient_tolerance: 10.0 # Tolerance on the temperature difference during temperature gradient detection.    
 config['gradient_statistics_enabled'] = st.sidebar.toggle('gradient_statistics_enabled', value=config_default_values['gradient_statistics_enabled']) #gradient_statistics_enabled: True # Whether or not to calculate and plot gradient statistics
-config['cluster_npixels'] = st.sidebar.number_input('cluster_npixels', value=config_default_values['cluster_npixels'])# cluster_npixels: 0    # Minimum amount of pixels in a cluster. Clusters below this value will be discarded.
-config['cluster_sqm'] = st.sidebar.number_input('cluster_sqm', value=config_default_values['cluster_sqm'])# cluster_sqm: 0.0             # Minimum size of a cluster in square meters. Clusters below this value will be discarded.
-st.sidebar.write('Range of tolerance temperature values to use when plotting percentage of road that is comprised:')#     tolerance: [5, 20, 1]        # Range of tolerance temperature values '[<start>, <end>, <step size>]' to use when plotting percentage of road that is comprised of high gradients vs gradient tolerance.
-c1, c2, c3 = st.sidebar.columns(3)
-with c1:
-    val_1 = st.number_input('start', value=config_default_values['tolerance'][0])
-with c2: val_2=st.number_input('end', value=config_default_values['tolerance'][1])
-with c3: val_3=st.number_input('stepsize', value=config_default_values['tolerance'][2])
-config['tolerance'] = [val_1, val_2, val_3] 
+
+
+#--- config indstillinger der ikke skal kunne ændres i appen, men stadig skal være i config filen. Gemmer den oprindelige widget så den er nem at sætte ind igen --- 
+config['show_plots'] = config_default_values['show_plots'] #st.sidebar.toggle('show_plots', value=config_default_values['show_plots'] )# Whether or not to show plots of data cleaning and enabled detections. default=True
+config['save_figures'] = config_default_values['save_figures'] #st.sidebar.toggle('save_figures', value=config_default_values['save_figures'] )# Whether or not to save the generated plots as png-files instead of showing them.
+config['write_csv'] = config_default_values['write_csv'] #st.sidebar.toggle('write_csv', value=config_default_values['write_csv'] )# Whether or not to write csv files for post-analysis.
+config['autotrim_enabled'] =config_default_values['autotrim_enabled']# st.sidebar.toggle('autotrim_enabled', value=config_default_values['autotrim_enabled'])# Whether or not to use autotrimming. If set to False the values in the four manual_trim_* entries is used to crop the data.
+config['autotrim_temperature'] = config_default_values['autotrim_temperature']#st.sidebar.number_input('Temperature threshold for the data trimming step (autotrim_temperature)', value=config_default_values['autotrim_temperature'], step=1) #autotrim_temperature: 40.0 # Temperature threshold for the data trimming step.
+config['cluster_npixels'] = config_default_values['cluster_npixels']#st.sidebar.number_input('cluster_npixels', value=config_default_values['cluster_npixels'])# cluster_npixels: 0    # Minimum amount of pixels in a cluster. Clusters below this value will be discarded.
+config['cluster_sqm'] = config_default_values['cluster_sqm'] #st.sidebar.number_input('cluster_sqm', value=config_default_values['cluster_sqm'])# cluster_sqm: 0.0             # Minimum size of a cluster in square meters. Clusters below this value will be discarded.
+#st.sidebar.write('Range of tolerance temperature values to use when plotting percentage of road that is comprised:')#     tolerance: [5, 20, 1]        # Range of tolerance temperature values '[<start>, <end>, <step size>]' to use when plotting percentage of road that is comprised of high gradients vs gradient tolerance.
+#c1, c2, c3 = st.sidebar.columns(3)
+#with c1:
+#    val_1 = st.number_input('start', value=config_default_values['tolerance'][0])
+#with c2: val_2=st.number_input('end', value=config_default_values['tolerance'][1])
+#with c3: val_3=st.number_input('stepsize', value=config_default_values['tolerance'][2])
+#config['tolerance'] = [val_1, val_2, val_3] 
+config['tolerance'] = config_default_values['tolerance']
+config['lane_to_use'] = 'warmest' #st.sidebar.selectbox('Use the "coldest" or "warmest" lane for detections.', ['coldest', 'warmest'], index=1)#     lane_to_use: warmest       # Whether to use the "coldest" or "warmest" lane for detections.
+config['lane_enabled'] = config_default_values['lane_enabled']# st.sidebar.toggle('lane_enabled. Whether or not to try and identify lanes', value=config_default_values['lane_enabled'])# lane_enabled: True         # Whether or not to try and identify lanes.
+config['plotting_segments'] = config_default_values['plotting_segments']  #st.sidebar.number_input('plotting_segments', value=config_default_values['plotting_segments'] , step=1)# Number of segments that the data is partitioned into before being plotted. If set to 1 the entire dataset is plotted into figure (for each plot-type).
+config['roller_detect_enabled'] = config_default_values['roller_detect_enabled']# st.sidebar.toggle('roller_detect_enabled. Whether or not to use roller_detection.', value=config_default_values['roller_detect_enabled']) #roller_detect_enabled: False  # Whether or not to use roller_detection.
+config['roller_detect_temperature'] = config_default_values['roller_detect_temperature']# st.sidebar.number_input('roller_detect_temperature', value=config_default_values['roller_detect_temperature'] , step=1)#roller_detect_temperature: 50      # Threshold temperature used in roller-detection (road temperature pixels below this temperature is categorized as roller).
+config['roller_detect_interpolation'] = config_default_values['roller_detect_interpolation']#st.sidebar.toggle('roller_detect_interpolation',value=config_default_values['roller_detect_interpolation'] ) #roller_detect_interpolation: True  # If set to True the pixels identified as being the roller is interpolated with mean temperature of the road
+config['autotrim_percentage'] =config_default_values['autotrim_percentage']# st.sidebar.number_input('autotrim_percentage', value=config_default_values['autotrim_percentage'] )#autotrim_percentage: 0.2   # Percentage threshold of data below <autotrim_temperature> in order for an edge longitudinal line to be removed.TF_time
+config['moving_average_window'] = config_default_values['moving_average_window'] # st.sidebar.number_input('moving_average_window', value=config_default_values['moving_average_window'] , step=1)#moving_average_window: 100.0       # Windowsize in meter to calculate (centered) moving average.
+config['moving_average_percent'] = config_default_values['moving_average_percent'] #st.sidebar.number_input('moving_average_percent', value=config_default_values['moving_average_percent'])# moving_average_percent: 90.0       # Percentage used to detect low temperatures, i.e., road pixels where pixel < "percentage of moving average temperature"
+config['moving_average_enabled'] = config_default_values['moving_average_enabled']#st.sidebar.toggle('moving_average_enabled', value=config_default_values['moving_average_enabled'])#moving_average_enabled: True  # Whether or not to make detections using the "moving average" method.
+config['roadwidth_adjust_left'] = config_default_values['roadwidth_adjust_left'] # st.sidebar.number_input('Additional number of pixels to cut off left edge after estimating road width (roadwidth_adjust_left)', value=config_default_values['roadwidth_adjust_left'] , step=1)
+config['roadwidth_adjust_right'] = config_default_values['roadwidth_adjust_right'] # st.sidebar.number_input('Additional number of pixels to cut off right edge after estimating road width ( roadwidth_adjust_right)', value=config_default_values['roadwidth_adjust_right'] , step=1)
 config['title'] = 'Example plot of test section'  # String used as title in the figures created. Mandatory
 title= config['title']
 ########---------------------------------------------------------------------
@@ -174,7 +182,6 @@ if st.session_state.count != st.session_state.count_new:
     if config['reader'] is None:
         st.write('You have to choose a reader before data is loaded.')
     elif uploaded_file is not None:
-        st.write('Loading data')
         #uploaded_file er "stien" til den uplodede data. Nogle filers readers giver både dataframe og tekst
         if config['reader']=='TF_time_K':
             st.session_state['uploaded_data'], additional_text = load_data(uploaded_file, config['reader'])
@@ -188,6 +195,9 @@ elif st.session_state.count == st.session_state.count_new:
     st.dataframe(st.session_state['uploaded_data'])
     #st.write('count = count_new')
 
+# st.write(st.session_state.uploadFile)
+# st.write(st.session_state.uploadFile.name)
+#Hvis navnen på 
 df = st.session_state['uploaded_data']#gemmer denne dataframe til brug i resten af koden. 
 
 #=== Hvis man vil hente en datafil direkte kan dette også gøres således ===
@@ -374,15 +384,16 @@ if run_script_checkbox:
         # IMPORTANT: Cache the conversion to prevent computation on every rerun
         return df.to_csv().encode('utf-8')
     
+    #
+    input_file_name = st.session_state.uploadFile.name[:-4]+'_'#fjerner .csv
     #raw temperatures in pixels belonging to road
     save_raw_temp_df = nrn_functions.temperature_to_csv( temperatures_trimmed, metadata, road_pixels)
-    c1, c2, c3 = st.columns([0.1, 0.6, 0.3])
-    with c2:
-        st.write('Save raw temperatures in pixels belonging to road')
-    with c3:
-        save_name = st.text_input('output name', value='raw_temp_on_road.csv')
-            
+    c1, c2 = st.columns([0.9, 0.1])
     with c1:
+        st.write('Save raw temperatures in pixels belonging to road')
+    save_name = st.text_input('output name', value=input_file_name+'raw_temp_on_road.csv')#som default skal alle filer hedde navnen på inout filen + mere
+            
+    with c2:
         st.download_button(
             label='Save',
             data = convert_df(save_raw_temp_df),
@@ -395,17 +406,16 @@ if run_script_checkbox:
     #Save all pixels categorized as either non-road, road or detected as having a temperature below a moving average
     st.write('#')#laver luft imellem knapperne
     save_ma_detections_df = nrn_functions.detections_to_csv( temperatures_trimmed, metadata, road_pixels, moving_average_pixels)
-    c1, c2, c3 = st.columns([0.1, 0.6, 0.3])
-    with c3:
-        save_name1 = st.text_input('output name', value='moving_average_detections.csv')
-    with c1:
+    c1, c2 = st.columns([0.9, 0.1])
+    save_name1 = st.text_input('output name', value=input_file_name+'moving_average_detections.csv')
+    with c2:
         st.download_button(
             label='Save',
             data = convert_df(save_ma_detections_df),
             file_name=save_name1,
             mime = 'text/csv'
             )
-    with c2:
+    with c1:
         st.write('Save all pixels categorized as either non-road, road or detected as having a temperature below a moving average')
     with st.expander('See dataframe before saving'):
         st.dataframe(save_ma_detections_df)
@@ -413,12 +423,11 @@ if run_script_checkbox:
     #Save all pixels categorized as either non-road, road or gradient
     st.write('#')
     save_gradient_detections_df = nrn_functions.detections_to_csv( temperatures_trimmed, metadata, road_pixels, gradient_pixels)
-    c1, c2, c3 = st.columns([0.1, 0.6, 0.3])
-    with c2:
-        st.write('Save all pixels categorized as either non-road, road or gradient')
-    with c3:
-        save_name2 = st.text_input('output name', value='gradient_detections.csv')
+    c1, c2 = st.columns([0.9, 0.1])
     with c1:
+        st.write('Save all pixels categorized as either non-road, road or gradient')
+    save_name2 = st.text_input('output name', value=input_file_name+'gradient_detections.csv')
+    with c2:
         st.download_button(
             label='Save',
             data = convert_df(save_gradient_detections_df),
@@ -431,12 +440,11 @@ if run_script_checkbox:
     #Save the mean temperature for each distance
     st.write('#')
     save_mean_temp_df = nrn_functions.temperature_mean_to_csv(temperatures_trimmed, road_pixels)
-    c1, c2, c3 = st.columns([0.1, 0.6, 0.3])
-    with c2:
-        st.write('Save the mean temperature for each distance')
-    with c3:
-        save_name3 = st.text_input('output name', value='mean_temperatures.csv')
+    c1, c2 = st.columns([0.9, 0.1])
     with c1:
+        st.write('Save the mean temperature for each distance')
+    save_name3 = st.text_input('output name', value=input_file_name+'mean_temperatures.csv')
+    with c2:
         st.download_button(
             label='Save',
             data = convert_df(save_mean_temp_df),
@@ -450,12 +458,12 @@ if run_script_checkbox:
     #Save config file Save the used parameter values in a configuration file. This enables usto run the exact same analysis again.
     st.write('#')
     config_json = json.dumps(config, indent=1)
-    c1, c2, c3 = st.columns([0.1, 0.6, 0.3])
-    with c2: 
+    c1, c2 = st.columns([0.9, 0.1])
+    with c1: 
         st.write('Save the used parameter values in a configuration file. This enables usto run the exact same analysis again.')
-    with c3:
-        save_name4 = st.text_input('output name', value='configuration_values.json')
-    with c1:
+    
+    save_name4 = st.text_input('output name', value=input_file_name+'configuration_values.json')
+    with c2:
         st.download_button(
             label='Save',
             file_name=save_name4,
@@ -556,5 +564,11 @@ if run_script_checkbox:
 
 #%%
 st.divider()
+config['version'] = 'version 0.2 - NRN 08-02-2024  - prototype'
+
 st.markdown('**Version log**')
+txt = '''*version 0.2 - NRN 08-02-2024  - prototype
+Change sidebar to only contain relevant input.  
+change save function so name from input file is added to output name*'''
+st.markdown(txt)
 st.markdown('*version 0.1 - test fase - NRN 2024*')
