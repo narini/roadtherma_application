@@ -6,8 +6,10 @@ Created on Sat Jan 27 14:11:20 2024
 """
 import matplotlib.pyplot as plt 
 import numpy as np
+import seaborn as sns
 from matplotlib.colors import ListedColormap
 import pandas as pd
+from plotting import _calculate_tolerance_vs_percentage_high_gradient
 
 def heatmaps_temperature_pixels(ax, pixels, distance, pixel_width, include_colorbar=True):
     """
@@ -116,3 +118,49 @@ def temperature_mean_to_csv(temperatures, road_pixels):
     temperatures['temperature_sum'] = np.nanmean(temperatures.values, axis=1)
     df = temperatures[['temperature_sum']]
     return df
+
+
+def plot_statistics_gradientPlot(title, temperatures, roadwidths, road_pixels, tolerance):
+    """
+    Tager udgangspunkt i plotting.plot_statistics , men dele op så de to plots er hver for sig. 
+    Den ene er meget tidskrævende og skal derfor kunne slås fra. Denne del 
+    plotter "Percentage high gradient as a function of tolerance" 
+
+    """
+    tol_start, tol_end, tol_step = tolerance
+    tolerances = np.arange(tol_start, tol_end, tol_step)
+
+    fig_stats, ax1 = plt.subplots()
+    ax1.set_title(title)
+
+    # Plot showing the percentage of road that is comprised of high gradient pixels for a given gradient tolerance
+    high_gradients = _calculate_tolerance_vs_percentage_high_gradient(
+        temperatures, roadwidths, road_pixels, tolerances)
+    ax1.set_title('Percentage high gradient as a function of tolerance')
+    ax1.set_xlabel('Threshold temperature difference [C]')
+    ax1.set_ylabel('Percentage of road whith high gradient.')
+    sns.lineplot(x=tolerances, y=high_gradients, ax=ax1)
+
+    return fig_stats
+
+def plot_statistics_TempDistributionPlot(title, temperatures, road_pixels, limits):
+    """
+    Tager udgangspunkt i plotting.plot_statistics , men dele op så de to plots er hver for sig. 
+    Den ene er meget tidskrævende og skal derfor kunne slås fra. 
+    Denne del plotter "Road temperature distribution"
+    
+    limits = [x_lower, x_higher]
+
+    """
+
+    fig_stats, ax1 = plt.subplots()
+    ax1.set_title(title)
+
+    # Plot showing histogram of road temperature
+    ax1.set_title('Road temperature distribution')
+    ax1.set_xlabel('Temperature [C]')
+    distplot_data = temperatures.values[road_pixels]
+    sns.histplot(distplot_data, color="m", ax=ax1,
+                 stat='density', discrete=True)#, kde=True)
+    ax1.set_xlim(limits)
+    return fig_stats

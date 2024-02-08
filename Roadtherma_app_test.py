@@ -66,12 +66,13 @@ st.sidebar.image(logo_image, caption=None, width=250)
 # Default jobs værdier
 config = {} #starter en ny config dictionary hvis alle værdierne kommer fra App. 
 config['Date of analysis'] = date.today().strftime('%Y-%m-%d')
+config['version'] = 'version 0.2 - NRN 08-02-2024  - prototype'
 config_default_values = {'pixel_width':0.25, 'roadwidth_threshold':50, 'autotrim_temperature':40, 'lane_threshold': 150,
                          'roller_detect_enabled':False, 'roller_detect_temperature':50, 'roller_detect_interpolation':False,
                          'gradient_enabled':True, 'gradient_tolerance':10, 'plotting_segments':1, 'show_plots':True,
                          'save_figures':True, 'write_csv':True,'autotrim_enabled':False, 'autotrim_percentage':0.2,
                          'roadwidth_adjust_left': 1, 'roadwidth_adjust_right':1, 'lane_enabled':True,'moving_average_enabled':True,
-                         'moving_average_window':100, 'moving_average_percent': 90, 'gradient_statistics_enabled':True,
+                         'moving_average_window':100, 'moving_average_percent': 90, 'gradient_statistics_enabled':False,
                          'cluster_npixels':0, 'cluster_sqm':0, 'tolerance':[5,20,1]}
 
 st.sidebar.divider()
@@ -105,8 +106,6 @@ config['roadwidth_threshold'] = st.sidebar.number_input('Threshold temperature u
 config['lane_threshold'] = st.sidebar.number_input('Threshold temperature used when detecting the paving lane (lane_threshold)', value=config_default_values['lane_threshold'] , step=1)#     lane_threshold: 150.0      # Threshold temperature used when detecting the paving lane.
 config['gradient_enabled'] = st.sidebar.toggle('gradient_enabled', value=config_default_values['gradient_enabled'] )#gradient_enabled: True             # Whether or not to make detections using the "gradient" method.
 config['gradient_tolerance'] = st.sidebar.number_input('gradient_tolerance', value=config_default_values['gradient_tolerance'] , step=1)# gradient_tolerance: 10.0 # Tolerance on the temperature difference during temperature gradient detection.    
-config['gradient_statistics_enabled'] = st.sidebar.toggle('gradient_statistics_enabled', value=config_default_values['gradient_statistics_enabled']) #gradient_statistics_enabled: True # Whether or not to calculate and plot gradient statistics
-
 
 #--- config indstillinger der ikke skal kunne ændres i appen, men stadig skal være i config filen. Gemmer den oprindelige widget så den er nem at sætte ind igen --- 
 config['show_plots'] = config_default_values['show_plots'] #st.sidebar.toggle('show_plots', value=config_default_values['show_plots'] )# Whether or not to show plots of data cleaning and enabled detections. default=True
@@ -188,6 +187,7 @@ if st.session_state.count != st.session_state.count_new:
             st.write(additional_text)
         else:
             st.session_state['uploaded_data'] = load_data(uploaded_file, config['reader'])
+            config['input data'] = st.session_state.uploadFile.name
         #printer den uploaded dataframe 
         st.dataframe(st.session_state['uploaded_data'])
 elif st.session_state.count == st.session_state.count_new:
@@ -195,9 +195,7 @@ elif st.session_state.count == st.session_state.count_new:
     st.dataframe(st.session_state['uploaded_data'])
     #st.write('count = count_new')
 
-# st.write(st.session_state.uploadFile)
-# st.write(st.session_state.uploadFile.name)
-#Hvis navnen på 
+
 df = st.session_state['uploaded_data']#gemmer denne dataframe til brug i resten af koden. 
 
 #=== Hvis man vil hente en datafil direkte kan dette også gøres således ===
@@ -342,7 +340,20 @@ st.markdown(':red[Herunder kunne man vise forskellige plots] ')
 #         )
 #         # st.pyplot(figures['stats'])
 
-#%%
+#Der laves to seperate figurer således at den tidskrævende del kan vælges fra
+config['gradient_statistics_enabled'] = st.toggle('Plot percentage high gradient as a function of tolerance (gradient_statistics_enabled). OBS: this is quite time consuming', value=config_default_values['gradient_statistics_enabled']) #gradient_statistics_enabled: True # Whether or not to calculate and plot gradient statistics
+
+if config['gradient_statistics_enabled']:
+    figures['stats_gradient'] = nrn_functions.plot_statistics_gradientPlot(title,temperatures_trimmed,roadwidths,road_pixels,config['tolerance'])
+    st.pyplot(figures['stats_gradient'])
+
+st.toggle('Plot distribution of temperatures', value=False, key='plot_temp_dist')
+if st.session_state.plot_temp_dist == True:
+    c1, c2 = st.columns(2)
+    with c1: x_lower = st.number_input('lower limit', value=np.min(temperatures_trimmed.values[road_pixels]))
+    with c2: x_higher = st.number_input('higher limit', value = np.max(temperatures_trimmed.values[road_pixels]))
+    figures['stats_tempDist'] = nrn_functions.plot_statistics_TempDistributionPlot(title, temperatures_trimmed, road_pixels, limits=[x_lower,x_higher])  
+    st.pyplot(figures['stats_tempDist'])
 
 
 #%%-------
@@ -386,7 +397,15 @@ if run_script_checkbox:
     
     #
     input_file_name = st.session_state.uploadFile.name[:-4]+'_'#fjerner .csv
+    
+    ### Output med de ting vi gerne vil have fra entreprenørerne 
+    c1, c2 = st.columns([0.9, 0.1])
+    with c1:
+        st.markdown('Save the results of post analysis of data - :red[ Lige nu er der ikke noget her. Find ud af hvad vi gerne vil have med ud!]')
+    
+    
     #raw temperatures in pixels belonging to road
+    st.write('#')
     save_raw_temp_df = nrn_functions.temperature_to_csv( temperatures_trimmed, metadata, road_pixels)
     c1, c2 = st.columns([0.9, 0.1])
     with c1:
@@ -564,11 +583,10 @@ if run_script_checkbox:
 
 #%%
 st.divider()
-config['version'] = 'version 0.2 - NRN 08-02-2024  - prototype'
-
-st.markdown('**Version log**')
-txt = '''*version 0.2 - NRN 08-02-2024  - prototype
-Change sidebar to only contain relevant input.  
-change save function so name from input file is added to output name*'''
-st.markdown(txt)
-st.markdown('*version 0.1 - test fase - NRN 2024*')
+with st.expander('Version log'):
+    st.markdown('**Version log**')
+    txt = '''*version 0.2 - NRN 08-02-2024  - prototype  
+    Change sidebar to only contain relevant input.  
+    change save function so name from input file is added to output name*'''
+    st.markdown(txt)
+    st.markdown('*version 0.1 - test fase - NRN 2024*')
