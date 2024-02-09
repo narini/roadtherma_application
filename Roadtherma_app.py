@@ -376,20 +376,20 @@ if run_script_checkbox:
     statistics_dataframe = nrn_functions.summary_as_MAP(temperatures_trimmed, road_pixels, moving_average_pixels, filename=st.session_state.uploadFile.name)
      
 
-    txt = """ 
-    | | 10 degrees gap |20 degrees gap| 30 degrees gap|
-    |:-- |:-----| :-----|:-----|
-    |Interval with maximum number of temperatures | {gap10}  | {gap20} | {gap30}| 
-    | Percentage | {degree10_perc}  | {degree20_perc} | {degree30_perc}| 
-    """.format(degree10_perc=statistics_dataframe['Percent with 10 degrees gap'][0],
-                degree20_perc =statistics_dataframe['Percent with 20 degrees gap'][0],
-                degree30_perc =statistics_dataframe['Percent with 30 degrees gap'][0],
-                gap10 = statistics_dataframe['10 degrees gap'][0],
-                gap20 = statistics_dataframe['20 degrees gap'][0],
-                gap30 = statistics_dataframe['30 degrees gap'][0])
-    st.write('#')
-    st.markdown(txt)
-    st.write('#')
+#    txt = """ 
+#    | | 10 degrees gap |20 degrees gap| 30 degrees gap|
+#    |:-- |:-----| :-----|:-----|
+#    |Interval with maximum number of temperatures | {gap10}  | {gap20} | {gap30}| 
+#    | Percentage | {degree10_perc}  | {degree20_perc} | {degree30_perc}| 
+#    """.format(degree10_perc=statistics_dataframe['Percent with 10 degrees gap'][0],
+#                degree20_perc =statistics_dataframe['Percent with 20 degrees gap'][0],
+#                degree30_perc =statistics_dataframe['Percent with 30 degrees gap'][0],
+#                gap10 = statistics_dataframe['10 degrees gap'][0],
+#                gap20 = statistics_dataframe['20 degrees gap'][0],
+#                gap30 = statistics_dataframe['30 degrees gap'][0])
+#    st.write('#')
+#    st.markdown(txt)
+#    st.write('#')
     
 #%%---- Herunder gemmes csv når man er klar
 st.subheader('Save results')
