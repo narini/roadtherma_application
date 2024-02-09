@@ -358,7 +358,7 @@ if st.session_state.plot_temp_dist == True:
 
 #%%-------
 st.subheader('post analysis')
-st.markdown(':red[her kan der være noget med statistik og om den overholder kravene]')
+
 if run_script_checkbox:
     # DET MATTEOS SCRIPT GØR 
     #counting nuber of pixels in the road
@@ -373,19 +373,28 @@ if run_script_checkbox:
     st.markdown('Number of pixels detected with moving average method: **{}**'.format(number_2))
     st.markdown('Ratio af pixels below {}% of moving average temperature: **{}%**'.format(config['moving_average_percent'], np.round(ratio*100,2) ))
     
-    # fig_hist, (ax1, ax2) = plt.subplots(1,2)
-    # distplot_data = temperatures_trimmed.values
-    # sns.histplot(distplot_data, color="m", ax=ax1 ,stat='density', discrete=True, kde=True)
-    # ax1.set_title('All data')
-    # distplot_data = temperatures_trimmed.values[road_pixels]
-    # sns.histplot(distplot_data, color="m", ax=ax2 ,stat='density', discrete=True, kde=True)
-    # ax2.set_title('Road data')
-    # st.pyplot(fig_hist)
+    #Regner intervaller
+    statistics_dataframe = nrn_functions.summary_as_MAP(temperatures_trimmed, road_pixels, moving_average_pixels, filename=st.session_state.uploadFile.name)
+     
+
+    txt = """ 
+    | | 10 degrees gap |20 degrees gap| 30 degrees gap|
+    |:-- |:-----| :-----|:-----|
+    |Interval with maximum number of temperatures | {gap10}  | {gap20} | {gap30}| 
+    | Percentage | {degree10_perc}  | {degree20_perc} | {degree30_perc}| 
+    """.format(degree10_perc=statistics_dataframe['Percent with 10 degrees gap'][0],
+                degree20_perc =statistics_dataframe['Percent with 20 degrees gap'][0],
+                degree30_perc =statistics_dataframe['Percent with 30 degrees gap'][0],
+                gap10 = statistics_dataframe['10 degrees gap'][0],
+                gap20 = statistics_dataframe['20 degrees gap'][0],
+                gap30 = statistics_dataframe['30 degrees gap'][0])
+    st.write('#')
+    st.markdown(txt)
+    st.write('#')
     
 #%%---- Herunder gemmes csv når man er klar
 st.subheader('Save results')
 st.write('When the analysis is good enough, the result can be saved by clicking on the buttons below.  ')
-st.markdown(":red[Vil vi gemme figurerne også?]")
 #----- 
 
 #Herunder er gemme funktion lavet med download knapper
@@ -399,11 +408,21 @@ if run_script_checkbox:
     input_file_name = st.session_state.uploadFile.name[:-4]+'_'#fjerner .csv
     
     ### Output med de ting vi gerne vil have fra entreprenørerne 
+    st.write('#')
     c1, c2 = st.columns([0.9, 0.1])
     with c1:
-        st.markdown('Save the results of post analysis of data - :red[ Lige nu er der ikke noget her. Find ud af hvad vi gerne vil have med ud!]')
-    
-    
+        st.markdown('Save the results of post analysis of data')
+    save_name0 = st.text_input('output name', value=input_file_name+'Results.csv')#som default skal alle filer hedde navnen på inout filen + mere
+    with c2:
+        st.download_button(
+            label='Save',
+            data = convert_df(statistics_dataframe),
+            file_name=save_name0,
+            mime = 'text/csv'
+            )
+    with st.expander('See dataframe before saving'):
+        st.dataframe(statistics_dataframe)
+        
     #raw temperatures in pixels belonging to road
     st.write('#')
     save_raw_temp_df = nrn_functions.temperature_to_csv( temperatures_trimmed, metadata, road_pixels)

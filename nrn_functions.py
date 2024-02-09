@@ -150,7 +150,7 @@ def plot_statistics_TempDistributionPlot(title, temperatures, road_pixels, limit
     Denne del plotter "Road temperature distribution"
     
     limits = [x_lower, x_higher]
-
+    histplot: kde=False gør st den er en del hurtigere
     """
 
     fig_stats, ax1 = plt.subplots()
@@ -161,6 +161,98 @@ def plot_statistics_TempDistributionPlot(title, temperatures, road_pixels, limit
     ax1.set_xlabel('Temperature [C]')
     distplot_data = temperatures.values[road_pixels]
     sns.histplot(distplot_data, color="m", ax=ax1,
-                 stat='density', discrete=True)#, kde=True)
+                 stat='density', discrete=True, kde=False)
     ax1.set_xlim(limits)
     return fig_stats
+
+def summary_as_MAP(temperatures_trimmed, road_pixels, moving_average_pixels, filename):
+    """
+    Function which create the same summary statistics at MAP old script
+    
+    #Hvert datasæt i dataframe gennemgås. Det undersøges hvor mange datapunkter der er i forskellig etemperatur intervaller med fast længde på X grader. 
+    #Der laves således at intervallerne er løbende, eg. for interval af X=20: 0-20, 1-21, 2-22... 
+    #Dette samles i resultat dataframe. Derefter findes det interval med flest datapunkter og denne gemmes i Maks og senere summary_df 
+
+    Derudover udregnes ratio af pixels på vejen der er detected i moving average metoden 
+
+    """
+    df = temperature_mean_to_csv(temperatures_trimmed, road_pixels)
+    #% Select only rows with temperature above 80.
+    df = df[df['temperature_sum']>80]
+    IRfiles={m:[] for m in range(20)} #laver 20 tomme dataframes
+    bins_list=[]
+    ref=200
+    scale=1
+    for m in range(20): #for hver af dataframsne
+        min=0+m
+        max=200+m
+        bins2 = [p/scale for p in range(min, max,20)]
+        bins_list.append(bins2)
+        IRfiles[m]=pd.cut(x= df['temperature_sum'], bins=bins2, include_lowest=True).value_counts()
+        IRfiles[m]=IRfiles[m].to_frame()
+        IRfiles[m].reset_index(inplace=True)
+        IRfiles[m]['Percentage [%]']=[IRfiles[m]['temperature_sum'][x]/IRfiles[m]['temperature_sum'].sum()*100 for x in range(int(len(IRfiles[m])))]
+    Results=pd.concat(IRfiles,axis=0).sort_values(by=['index'])
+    Maks=Results.loc[Results['Percentage [%]'].idxmax()]
+
+    # Så gøres det for intervaller der er 10 grader
+    IRfiles3={m:[] for m in range(10)}
+    bins_list=[]
+    for m in range(40):
+        min=0+m
+        max=200+m
+        bins3 = [p/scale for p in range(min, max, 10)]
+        bins_list.append(bins3)
+        IRfiles3[m]=pd.cut(x= df['temperature_sum'], bins=bins3, include_lowest=True).value_counts()
+        IRfiles3[m]=IRfiles3[m].to_frame()
+        IRfiles3[m].reset_index(inplace=True)
+        IRfiles3[m]['Percentage [%]']=[IRfiles3[m]['temperature_sum'][x]/IRfiles3[m]['temperature_sum'].sum()*100 for x in range(int(len(IRfiles3[m])))]
+        IRfiles3[m]['Percentage [%] 10C gap']=IRfiles3[m]['Percentage [%]']
+        IRfiles3[m]['Temperature [°C] 10C gap']=IRfiles3[m]['temperature_sum']
+        del IRfiles3[m]['temperature_sum']
+        del IRfiles3[m]['Percentage [%]']
+    Results3=pd.concat(IRfiles3,axis=0).sort_values(by=['index'])
+    Maks3=Results3.loc[Results3['Percentage [%] 10C gap'].idxmax()]
+    
+    #Så gøres det for intervaller der er 30 grader
+    IRfiles4={m:[] for m in range(30)}
+    bins_list=[]
+    for m in range(30):
+        min=0+m
+        max=200+m
+        bins3 = [p/scale for p in range(min, max, 30)]
+        bins_list.append(bins3)
+        IRfiles4[m]=pd.cut(x= df['temperature_sum'], bins=bins3, include_lowest=True).value_counts()
+        IRfiles4[m]=IRfiles4[m].to_frame()
+        IRfiles4[m].reset_index(inplace=True)
+        IRfiles4[m]['Percentage [%]']=[IRfiles4[m]['temperature_sum'][x]/IRfiles4[m]['temperature_sum'].sum()*100 for x in range(int(len(IRfiles4[m])))]
+        IRfiles4[m]['Percentage [%] 30C gap']=IRfiles4[m]['Percentage [%]']
+        IRfiles4[m]['Temperature [°C] 30C gap']=IRfiles4[m]['temperature_sum']
+        del IRfiles4[m]['temperature_sum']
+        del IRfiles4[m]['Percentage [%]']
+    Results4=pd.concat(IRfiles4,axis=0).sort_values(by=['index'])
+    Maks4=Results4.loc[Results4['Percentage [%] 30C gap'].idxmax()]
+
+    #MA ratio
+    number_1 = np.count_nonzero(road_pixels)
+    #count all elements in dataframe
+    number_2 = np.count_nonzero(moving_average_pixels)
+    #ratio 
+    ratio = number_2/number_1
+    
+    #gemmer som MAP output
+    a = filename[:-4].split('_')
+    summary_df = pd.DataFrame({'Entreprise':a[4], 'Contractor':a[2], 'Mix Type':a[0],
+                               'Road ID':a[5], 'Date':a[1], 'Device':a[3],
+                               'Number of Pavers':a[7], 'Position of Paver':a[8],
+                               'Road segment':a[6]}, index=range(0,1) )
+    summary_df['Moving Average Results [%]'] = np.round(ratio*100,2)
+    summary_df['10 degrees gap'] = Maks3.loc['index']
+    summary_df['Percent with 10 degrees gap'] = np.round(Maks3.loc['Percentage [%] 10C gap'],2) 
+    summary_df['20 degrees gap'] = Maks.loc['index']
+    summary_df['Percent with 20 degrees gap'] = np.round(Maks.loc['Percentage [%]'],2)
+    summary_df['30 degrees gap'] = Maks4.loc['index']
+    summary_df['Percent with 30 degrees gap'] = np.round(Maks4.loc['Percentage [%] 30C gap'],2)
+
+
+    return summary_df
