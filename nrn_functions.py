@@ -191,9 +191,9 @@ def summary_as_MAP(temperatures_trimmed, road_pixels, moving_average_pixels, fil
         IRfiles[m]=pd.cut(x= df['temperature_sum'], bins=bins2, include_lowest=True).value_counts()
         IRfiles[m]=IRfiles[m].to_frame()
         IRfiles[m].reset_index(inplace=True)
-        IRfiles[m]['Percentage [%]']=[IRfiles[m]['temperature_sum'][x]/IRfiles[m]['temperature_sum'].sum()*100 for x in range(int(len(IRfiles[m])))]
+        IRfiles[m]['Percentage []']=[IRfiles[m]['temperature_sum'][x]/IRfiles[m]['temperature_sum'].sum()*100 for x in range(int(len(IRfiles[m])))]
     Results=pd.concat(IRfiles,axis=0).sort_values(by=['index'])
-    Maks=Results.loc[Results['Percentage [%]'].idxmax()]
+    Maks=Results.loc[Results['Percentage []'].idxmax()]
 
     # Så gøres det for intervaller der er 10 grader
     IRfiles3={m:[] for m in range(10)}
@@ -206,13 +206,13 @@ def summary_as_MAP(temperatures_trimmed, road_pixels, moving_average_pixels, fil
         IRfiles3[m]=pd.cut(x= df['temperature_sum'], bins=bins3, include_lowest=True).value_counts()
         IRfiles3[m]=IRfiles3[m].to_frame()
         IRfiles3[m].reset_index(inplace=True)
-        IRfiles3[m]['Percentage [%]']=[IRfiles3[m]['temperature_sum'][x]/IRfiles3[m]['temperature_sum'].sum()*100 for x in range(int(len(IRfiles3[m])))]
-        IRfiles3[m]['Percentage [%] 10C gap']=IRfiles3[m]['Percentage [%]']
-        IRfiles3[m]['Temperature [°C] 10C gap']=IRfiles3[m]['temperature_sum']
+        IRfiles3[m]['Percentage []']=[IRfiles3[m]['temperature_sum'][x]/IRfiles3[m]['temperature_sum'].sum()*100 for x in range(int(len(IRfiles3[m])))]
+        IRfiles3[m]['Percentage [] 10C gap']=IRfiles3[m]['Percentage []']
+        IRfiles3[m]['Temperature [] 10C gap']=IRfiles3[m]['temperature_sum']
         del IRfiles3[m]['temperature_sum']
-        del IRfiles3[m]['Percentage [%]']
+        del IRfiles3[m]['Percentage []']
     Results3=pd.concat(IRfiles3,axis=0).sort_values(by=['index'])
-    Maks3=Results3.loc[Results3['Percentage [%] 10C gap'].idxmax()]
+    Maks3=Results3.loc[Results3['Percentage [] 10C gap'].idxmax()]
     
     #Så gøres det for intervaller der er 30 grader
     IRfiles4={m:[] for m in range(30)}
@@ -225,13 +225,13 @@ def summary_as_MAP(temperatures_trimmed, road_pixels, moving_average_pixels, fil
         IRfiles4[m]=pd.cut(x= df['temperature_sum'], bins=bins3, include_lowest=True).value_counts()
         IRfiles4[m]=IRfiles4[m].to_frame()
         IRfiles4[m].reset_index(inplace=True)
-        IRfiles4[m]['Percentage [%]']=[IRfiles4[m]['temperature_sum'][x]/IRfiles4[m]['temperature_sum'].sum()*100 for x in range(int(len(IRfiles4[m])))]
-        IRfiles4[m]['Percentage [%] 30C gap']=IRfiles4[m]['Percentage [%]']
-        IRfiles4[m]['Temperature [°C] 30C gap']=IRfiles4[m]['temperature_sum']
+        IRfiles4[m]['Percentage []']=[IRfiles4[m]['temperature_sum'][x]/IRfiles4[m]['temperature_sum'].sum()*100 for x in range(int(len(IRfiles4[m])))]
+        IRfiles4[m]['Percentage [] 30C gap']=IRfiles4[m]['Percentage []']
+        IRfiles4[m]['Temperature [] 30C gap']=IRfiles4[m]['temperature_sum']
         del IRfiles4[m]['temperature_sum']
-        del IRfiles4[m]['Percentage [%]']
+        del IRfiles4[m]['Percentage []']
     Results4=pd.concat(IRfiles4,axis=0).sort_values(by=['index'])
-    Maks4=Results4.loc[Results4['Percentage [%] 30C gap'].idxmax()]
+    Maks4=Results4.loc[Results4['Percentage [] 30C gap'].idxmax()]
 
     #MA ratio
     number_1 = np.count_nonzero(road_pixels)
@@ -248,11 +248,11 @@ def summary_as_MAP(temperatures_trimmed, road_pixels, moving_average_pixels, fil
                                'Road segment':a[6]}, index=range(0,1) )
     summary_df['Moving Average Results [%]'] = np.round(ratio*100,2)
     summary_df['10 degrees gap'] = Maks3.loc['index']
-    summary_df['Percent with 10 degrees gap'] = np.round(Maks3.loc['Percentage [%] 10C gap'],2) 
+    summary_df['Percent with 10 degrees gap'] = np.round(Maks3.loc['Percentage [] 10C gap'],2) 
     summary_df['20 degrees gap'] = Maks.loc['index']
-    summary_df['Percent with 20 degrees gap'] = np.round(Maks.loc['Percentage [%]'],2)
+    summary_df['Percent with 20 degrees gap'] = np.round(Maks.loc['Percentage []'],2)
     summary_df['30 degrees gap'] = Maks4.loc['index']
-    summary_df['Percent with 30 degrees gap'] = np.round(Maks4.loc['Percentage [%] 30C gap'],2)
+    summary_df['Percent with 30 degrees gap'] = np.round(Maks4.loc['Percentage [] 30C gap'],2)
 
 
     return summary_df
