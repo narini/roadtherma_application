@@ -191,7 +191,7 @@ def summary_as_MAP(temperatures_trimmed, road_pixels, moving_average_pixels, fil
         IRfiles[m]=pd.cut(x= df['temperature_sum'], bins=bins2, include_lowest=True).value_counts()
         IRfiles[m]=IRfiles[m].to_frame()
         IRfiles[m].reset_index(inplace=True)
-        IRfiles[m]['Percentage []']=[IRfiles[m]['temperature_sum'][x]/IRfiles[m]['temperature_sum'].sum()*100 for x in range(int(len(IRfiles[m])))]
+        IRfiles[m]['Percentage []']=[IRfiles[m]['temperature_sum'][x]/np.sum(IRfiles[m]['temperature_sum'])*100 for x in range(int(len(IRfiles[m])))]
     Results=pd.concat(IRfiles,axis=0).sort_values(by=['index'])
     Maks=Results.loc[Results['Percentage []'].idxmax()]
 
