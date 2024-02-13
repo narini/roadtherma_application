@@ -372,32 +372,32 @@ if run_script_checkbox:
     st.markdown('Number of pixels detected with moving average method: **{}**'.format(number_2))
     st.markdown('Ratio af pixels below {}% of moving average temperature: **{}%**'.format(config['moving_average_percent'], np.round(ratio*100,2) ))
     
-    df = nrn_functions.temperature_mean_to_csv(temperatures_trimmed, road_pixels)
-    df = df[df['temperature_sum']>80]
-    IRfiles={m:[] for m in range(20)} #laver 20 tomme dataframes
-    bins_list=[]
-    ref=200
-    scale=1
-    for m in range(20): #for hver af dataframsne
-        min=0+m
-        max=200+m
-        bins2 = [p/scale for p in range(min, max,20)]
-        bins_list.append(bins2)
-        IRfiles[m] = df['temperature_sum'].value_counts(bins=bins2)
-        #problemet er at cut giver catagoric dTypes. bruger value_count istedet
-        # IRfiles[m]=pd.cut(x= df['temperature_sum'], bins=bins2, include_lowest=True).value_counts()
-        IRfiles[m]=IRfiles[m].to_frame()
-        IRfiles[m].reset_index(inplace=True)
-        IRfiles[m]['temperature_sum'] = IRfiles[m][IRfiles[m].columns[1]]
+    # df = nrn_functions.temperature_mean_to_csv(temperatures_trimmed, road_pixels)
+    # df = df[df['temperature_sum']>80]
+    # IRfiles={m:[] for m in range(20)} #laver 20 tomme dataframes
+    # bins_list=[]
+    # ref=200
+    # scale=1
+    # for m in range(20): #for hver af dataframsne
+    #     min=0+m
+    #     max=200+m
+    #     bins2 = [p/scale for p in range(min, max,20)]
+    #     bins_list.append(bins2)
+    #     IRfiles[m] = df['temperature_sum'].value_counts(bins=bins2)
+    #     #problemet er at cut giver catagoric dTypes. bruger value_count istedet
+    #     # IRfiles[m]=pd.cut(x= df['temperature_sum'], bins=bins2, include_lowest=True).value_counts()
+    #     IRfiles[m]=IRfiles[m].to_frame()
+    #     IRfiles[m].reset_index(inplace=True)
+    #     IRfiles[m]['temperature_sum'] = IRfiles[m][IRfiles[m].columns[1]]
         
-        IRfiles[m]['Percentage []']=[IRfiles[m]['temperature_sum'][x]/IRfiles[m]['temperature_sum'].sum()*100 for x in range(int(len(IRfiles[m])))]
-    Results=pd.concat(IRfiles,axis=0).sort_values(by=['index'])
-    Maks=Results.loc[Results['Percentage []'].idxmax()]
-    st.write(Results)
+    #     IRfiles[m]['Percentage []']=[IRfiles[m]['temperature_sum'][x]/IRfiles[m]['temperature_sum'].sum()*100 for x in range(int(len(IRfiles[m])))]
+    # Results=pd.concat(IRfiles,axis=0).sort_values(by=['index'])
+    # Maks=Results.loc[Results['Percentage []'].idxmax()]
+    # st.write(Results)
     
-    #Regner intervaller
-    # statistics_dataframe = nrn_functions.summary_as_MAP(temperatures_trimmed, road_pixels, moving_average_pixels, filename=st.session_state.uploadFile.name)
-     
+    # Regner intervaller
+    statistics_dataframe = nrn_functions.summary_as_MAP(temperatures_trimmed, road_pixels, moving_average_pixels, filename=st.session_state.uploadFile.name)
+    
 
     # txt = """ 
     # | | 10 degrees gap |20 degrees gap| 30 degrees gap|
