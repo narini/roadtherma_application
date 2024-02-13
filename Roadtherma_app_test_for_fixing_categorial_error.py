@@ -390,7 +390,7 @@ if run_script_checkbox:
         IRfiles[m]['Percentage [%]'] = np.nan
         for x in range(0,len(IRfiles[m])):
             a = IRfiles[m]['temperature_sum'][x]
-            b = IRfiles[m]['temperature_sum'].sum()
+            b = np.sum(IRfiles[m]['temperature_sum'])
             IRfiles[m].loc[x,'Percentage [%]']= a/b*100
         
     # Results=pd.concat(IRfiles,axis=0).sort_values(by=['index'])
