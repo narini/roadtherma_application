@@ -383,19 +383,15 @@ if run_script_checkbox:
         max=200+m
         bins2 = [p/scale for p in range(min, max,20)]
         bins_list.append(bins2)
-        IRfiles[m]=pd.cut(x= df['temperature_sum'], bins=bins2, include_lowest=True).value_counts()
+        IRfiles[m] = df['temperature_sum'].value_counts(bins=bins2)
+        #problemet er at cut giver catagoric dTypes. bruger value_count istedet
+        # IRfiles[m]=pd.cut(x= df['temperature_sum'], bins=bins2, include_lowest=True).value_counts()
         IRfiles[m]=IRfiles[m].to_frame()
         IRfiles[m].reset_index(inplace=True)
-        #tilføjer ændringer så den ikke er 'Categorical' 
-        IRfiles[m]['Percentage [%]'] = np.nan
-        for x in range(0,len(IRfiles[m])):
-            a = IRfiles[m]['temperature_sum'][x]
-            b = np.sum(IRfiles[m]['temperature_sum'])
-            IRfiles[m].loc[x,'Percentage [%]']= a/b*100
         
-    # Results=pd.concat(IRfiles,axis=0).sort_values(by=['index'])
-    # Maks=Results.loc[Results['Percentage [%]'].idxmax()]
-    
+        IRfiles[m]['Percentage []']=[IRfiles[m]['temperature_sum'][x]/IRfiles[m]['temperature_sum'].sum()*100 for x in range(int(len(IRfiles[m])))]
+    Results=pd.concat(IRfiles,axis=0).sort_values(by=['index'])
+    Maks=Results.loc[Results['Percentage []'].idxmax()]
     st.write(IRfiles)
     
     #Regner intervaller
