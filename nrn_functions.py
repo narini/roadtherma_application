@@ -174,7 +174,9 @@ def summary_as_MAP(temperatures_trimmed, road_pixels, moving_average_pixels, fil
     #Dette samles i resultat dataframe. Derefter findes det interval med flest datapunkter og denne gemmes i Maks og senere summary_df 
 
     Derudover udregnes ratio af pixels på vejen der er detected i moving average metoden 
-
+    13-02-2024: Streamlit laver fejl når man bruger pd.cut() da den ikke kan arbejde med Catagorial dTypes
+    Derfor laves koden lidt om så den bruger value_counts() istedet. 
+    
     """
     df = temperature_mean_to_csv(temperatures_trimmed, road_pixels)
     #% Select only rows with temperature above 80.
@@ -188,9 +190,13 @@ def summary_as_MAP(temperatures_trimmed, road_pixels, moving_average_pixels, fil
         max=200+m
         bins2 = [p/scale for p in range(min, max,20)]
         bins_list.append(bins2)
-        IRfiles[m]=pd.cut(x= df['temperature_sum'], bins=bins2, include_lowest=True).value_counts()
+        IRfiles[m] = df['temperature_sum'].value_counts(bins=bins2)
+        #problemet er at cut giver catagoric dTypes. bruger value_count istedet
+        # IRfiles[m]=pd.cut(x= df['temperature_sum'], bins=bins2, include_lowest=True).value_counts()
         IRfiles[m]=IRfiles[m].to_frame()
         IRfiles[m].reset_index(inplace=True)
+        IRfiles[m]['temperature_sum'] = IRfiles[m][IRfiles[m].columns[1]]
+        
         IRfiles[m]['Percentage []']=[IRfiles[m]['temperature_sum'][x]/IRfiles[m]['temperature_sum'].sum()*100 for x in range(int(len(IRfiles[m])))]
     Results=pd.concat(IRfiles,axis=0).sort_values(by=['index'])
     Maks=Results.loc[Results['Percentage []'].idxmax()]
@@ -203,9 +209,13 @@ def summary_as_MAP(temperatures_trimmed, road_pixels, moving_average_pixels, fil
         max=200+m
         bins3 = [p/scale for p in range(min, max, 10)]
         bins_list.append(bins3)
-        IRfiles3[m]=pd.cut(x= df['temperature_sum'], bins=bins3, include_lowest=True).value_counts()
+        IRfiles3[m] = df['temperature_sum'].value_counts(bins=bins3)
+        #problemet er at cut giver catagoric dTypes. bruger value_count istedet
+        # IRfiles3[m]=pd.cut(x= df['temperature_sum'], bins=bins3, include_lowest=True).value_counts()
         IRfiles3[m]=IRfiles3[m].to_frame()
         IRfiles3[m].reset_index(inplace=True)
+        IRfiles3[m]['temperature_sum'] = IRfiles3[m][IRfiles3[m].columns[1]]
+        
         IRfiles3[m]['Percentage []']=[IRfiles3[m]['temperature_sum'][x]/IRfiles3[m]['temperature_sum'].sum()*100 for x in range(int(len(IRfiles3[m])))]
         IRfiles3[m]['Percentage [] 10C gap']=IRfiles3[m]['Percentage []']
         IRfiles3[m]['Temperature [] 10C gap']=IRfiles3[m]['temperature_sum']
@@ -222,9 +232,13 @@ def summary_as_MAP(temperatures_trimmed, road_pixels, moving_average_pixels, fil
         max=200+m
         bins3 = [p/scale for p in range(min, max, 30)]
         bins_list.append(bins3)
-        IRfiles4[m]=pd.cut(x= df['temperature_sum'], bins=bins3, include_lowest=True).value_counts()
+        IRfiles4[m] = df['temperature_sum'].value_counts(bins=bins3)
+        #problemet er at cut giver catagoric dTypes. bruger value_count istedet
+        # IRfiles4[m]=pd.cut(x= df['temperature_sum'], bins=bins3, include_lowest=True).value_counts()
         IRfiles4[m]=IRfiles4[m].to_frame()
         IRfiles4[m].reset_index(inplace=True)
+        IRfiles4[m]['temperature_sum'] = IRfiles4[m][IRfiles4[m].columns[1]]
+        
         IRfiles4[m]['Percentage []']=[IRfiles4[m]['temperature_sum'][x]/IRfiles4[m]['temperature_sum'].sum()*100 for x in range(int(len(IRfiles4[m])))]
         IRfiles4[m]['Percentage [] 30C gap']=IRfiles4[m]['Percentage []']
         IRfiles4[m]['Temperature [] 30C gap']=IRfiles4[m]['temperature_sum']
