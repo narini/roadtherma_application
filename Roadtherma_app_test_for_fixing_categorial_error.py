@@ -387,10 +387,10 @@ if run_script_checkbox:
         IRfiles[m]=IRfiles[m].to_frame()
         IRfiles[m].reset_index(inplace=True)
         
-    Results=pd.concat(IRfiles,axis=0).sort_values(by=['index'])
-    Maks=Results.loc[Results['Percentage [%]'].idxmax()]
+    # Results=pd.concat(IRfiles,axis=0).sort_values(by=['index'])
+    # Maks=Results.loc[Results['Percentage [%]'].idxmax()]
     
-    st.write(Marks)
+    st.write(IRfiles)
     
     #Regner intervaller
     # statistics_dataframe = nrn_functions.summary_as_MAP(temperatures_trimmed, road_pixels, moving_average_pixels, filename=st.session_state.uploadFile.name)
