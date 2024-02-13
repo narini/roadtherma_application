@@ -66,7 +66,7 @@ st.sidebar.image(logo_image, caption=None, width=250)
 # Default jobs værdier
 config = {} #starter en ny config dictionary hvis alle værdierne kommer fra App. 
 config['Date of analysis'] = date.today().strftime('%Y-%m-%d')
-config['version'] = 'version 0.2 - NRN 08-02-2024  - prototype'
+config['version'] = 'version 0.3 - NRN 13-02-2024 - ready for eksternal testing'
 config_default_values = {'pixel_width':0.25, 'roadwidth_threshold':50, 'autotrim_temperature':40, 'lane_threshold': 150,
                          'roller_detect_enabled':False, 'roller_detect_temperature':50, 'roller_detect_interpolation':False,
                          'gradient_enabled':True, 'gradient_tolerance':10, 'plotting_segments':1, 'show_plots':True,
@@ -376,20 +376,20 @@ if run_script_checkbox:
     statistics_dataframe = nrn_functions.summary_as_MAP(temperatures_trimmed, road_pixels, moving_average_pixels, filename=st.session_state.uploadFile.name)
      
 
-#    txt = """ 
-#    | | 10 degrees gap |20 degrees gap| 30 degrees gap|
-#    |:-- |:-----| :-----|:-----|
-#    |Interval with maximum number of temperatures | {gap10}  | {gap20} | {gap30}| 
-#    | Percentage | {degree10_perc}  | {degree20_perc} | {degree30_perc}| 
-#    """.format(degree10_perc=statistics_dataframe['Percent with 10 degrees gap'][0],
-#                degree20_perc =statistics_dataframe['Percent with 20 degrees gap'][0],
-#                degree30_perc =statistics_dataframe['Percent with 30 degrees gap'][0],
-#                gap10 = statistics_dataframe['10 degrees gap'][0],
-#                gap20 = statistics_dataframe['20 degrees gap'][0],
-#                gap30 = statistics_dataframe['30 degrees gap'][0])
-#    st.write('#')
-#    st.markdown(txt)
-#    st.write('#')
+    txt = """ 
+    | | 10 degrees gap |20 degrees gap| 30 degrees gap|
+    |:-- |:-----| :-----|:-----|
+    |Interval with maximum number of temperatures | {gap10}  | {gap20} | {gap30}| 
+    | Percentage | {degree10_perc} % | {degree20_perc} %| {degree30_perc} %| 
+    """.format(degree10_perc=statistics_dataframe['Percent with 10 degrees gap'][0],
+                degree20_perc =statistics_dataframe['Percent with 20 degrees gap'][0],
+                degree30_perc =statistics_dataframe['Percent with 30 degrees gap'][0],
+                gap10 = statistics_dataframe['10 degrees gap'][0],
+                gap20 = statistics_dataframe['20 degrees gap'][0],
+                gap30 = statistics_dataframe['30 degrees gap'][0])
+    st.write('#')
+    st.markdown(txt)
+    st.write('#')
     
 #%%---- Herunder gemmes csv når man er klar
 st.subheader('Save results')
@@ -603,6 +603,11 @@ if run_script_checkbox:
 st.divider()
 with st.expander('Version log'):
     st.markdown('**Version log**')
+    txt = '''*version 0.3 - NRN 13-02-2024 - ready for eksternal testing 
+    Post analysis is updated to include all privious analysis from MAP script.  
+    A result csv file is added. 
+    Graphs under statistics is added as an posibility.* 
+    '''
     txt = '''*version 0.2 - NRN 08-02-2024  - prototype  
     Change sidebar to only contain relevant input.  
     change save function so name from input file is added to output name*'''
