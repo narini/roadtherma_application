@@ -389,9 +389,9 @@ if run_script_checkbox:
         IRfiles[m]=IRfiles[m].to_frame()
         IRfiles[m].reset_index(inplace=True)
         
-        IRfiles[m]['Percentage []']=[IRfiles[m]['temperature_sum'][x]/IRfiles[m]['temperature_sum'].sum()*100 for x in range(int(len(IRfiles[m])))]
-    Results=pd.concat(IRfiles,axis=0).sort_values(by=['index'])
-    Maks=Results.loc[Results['Percentage []'].idxmax()]
+        # IRfiles[m]['Percentage []']=[IRfiles[m]['temperature_sum'][x]/IRfiles[m]['temperature_sum'].sum()*100 for x in range(int(len(IRfiles[m])))]
+    # Results=pd.concat(IRfiles,axis=0).sort_values(by=['index'])
+    # Maks=Results.loc[Results['Percentage []'].idxmax()]
     st.write(IRfiles)
     
     #Regner intervaller
