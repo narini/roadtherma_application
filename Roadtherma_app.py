@@ -35,12 +35,28 @@ import nrn_functions #funktioner lavet primært til streamlit app
 
 st.markdown('# Roadtherma user interface')
 st.write('')
-st.markdown('Program for analysing thermal data obtained durindddg road paving\n'  
-            ' *This version is a prototype for testing*')
+st.markdown('Program for analysing thermal data obtained during road paving')
 st.divider()
 #logo i sidebar
 logo_image = Image.open('vdlogo_blaa.png')
 st.sidebar.image(logo_image, caption=None, width=250)
+
+## VERSION af koden beskrives herunder. Printes nederst ##############
+current_version ='version 0.3 - NRN 13-02-2024 - ready for eksternal testing' #det der skrives i configuration filen
+versions_log_txt = '''
+*version 0.3 - NRN 13-02-2024 - ready for eksternal testing  
+Post analysis is updated to include all privious analysis from MAP script.  
+A result csv file is added.  
+Graphs under statistics is added as an posibility.  
+All readers is added*  
+
+*version 0.2 - NRN 08-02-2024  - prototype  
+Change sidebar to only contain relevant input.  
+change save function so name from input file is added to output name*
+
+*version 0.1 - test fase - NRN 2024*
+'''
+
 
 #%%If we want to get the jobs file as in the original road therma script and save it as a config dictionary, this is tehe way:
 # import sys
@@ -66,7 +82,7 @@ st.sidebar.image(logo_image, caption=None, width=250)
 # Default jobs værdier
 config = {} #starter en ny config dictionary hvis alle værdierne kommer fra App. 
 config['Date of analysis'] = date.today().strftime('%Y-%m-%d')
-config['version'] = 'version 0.3 - NRN 13-02-2024 - ready for eksternal testing'
+config['version'] = current_version
 config_default_values = {'pixel_width':0.25, 'roadwidth_threshold':50, 'autotrim_temperature':40, 'lane_threshold': 150,
                          'roller_detect_enabled':False, 'roller_detect_temperature':50, 'roller_detect_interpolation':False,
                          'gradient_enabled':True, 'gradient_tolerance':10, 'plotting_segments':1, 'show_plots':True,
@@ -160,9 +176,13 @@ def counter_func():
 
 col1, col2 = st.columns(2)
 config['reader'] = None #starter med en tom
+#navnene på alle readers i readers.py gemmes her så de kan vælges
+reader_list = ['voegele_example','voegele_M119', 'voegele_M30', 'voegele_taulov','TF_old',
+               'TF_new', 'TF_notime','TF_time', 'TF_time_new','TF_time_K','moba','moba2','moba3']
+               
 with col1:
-    st.markdown(':red[*Reades is added to the drop down menu when it is tested that they work in streamlit environment.*] ')
-    config['reader'] = st.selectbox('Define which reader to use', ['voegele_M30','TF_time_K'],index=None, placeholder="Choose an option",key='reader',
+    st.markdown(':red[*Hvis readers ikke virker så snak med NRN. Hvis nogle skal slettes eller flyttes op i rækken kan vi også det. *] ')
+    config['reader'] = st.selectbox('Define which reader to use', reader_list,index=None, placeholder="Choose an option",key='reader',#['voegele_M30','TF_time_K']
                                     on_change=counter_func )
     
 
@@ -428,7 +448,7 @@ if run_script_checkbox:
     c1, c2 = st.columns([0.9, 0.1])
     with c1:
         st.write('Save raw temperatures in pixels belonging to road')
-    save_name = st.text_input('output name', value=input_file_name+'raw_temp_on_road.csv')#som default skal alle filer hedde navnen på inout filen + mere
+    save_name = st.text_input('output name', value=input_file_name+'raw_data_on_road.csv')#som default skal alle filer hedde navnen på inout filen + mere
             
     with c2:
         st.download_button(
@@ -509,7 +529,35 @@ if run_script_checkbox:
             )
     with st.expander('See configuration file before saving'):
         st.write(config)
+
+import zipfile
+import io
+
+if run_script_checkbox:
     
+    st.markdown('### It is posible to download all files in one folder')
+    st.markdown('This will download all result files, configuration file and uploaded data. ')
+    raw_data_df = st.session_state['uploaded_data'] #den uploadede datafil
+    
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "x") as csv_zip:
+        csv_zip.writestr(input_file_name+"Results.csv", pd.DataFrame(statistics_dataframe).to_csv())
+        csv_zip.writestr(input_file_name+"raw_data_on_road.csv", pd.DataFrame(save_raw_temp_df).to_csv())
+        csv_zip.writestr(input_file_name+"moving_average_detections.csv", pd.DataFrame(save_ma_detections_df).to_csv())
+        csv_zip.writestr(input_file_name+"gradient_detections.csv", pd.DataFrame(save_gradient_detections_df).to_csv())
+        csv_zip.writestr(input_file_name+"mean_temperatures.csv", pd.DataFrame(save_mean_temp_df).to_csv())
+        csv_zip.writestr(input_file_name+"raw_data.csv", pd.DataFrame(raw_data_df).to_csv())
+        csv_zip.writestr(input_file_name+"configuration_values.json", json.dumps(config, indent=1))
+        
+        
+        
+        
+    st.download_button(
+        label="Download zip",
+        data=buf.getvalue(),
+        file_name=input_file_name+"analysis_results.zip",
+        mime="application/zip",
+        )
 #%% Herunder er gemme funktionen der virker med en output sti. Dette virker kun når scriptet køres lokalt på en computer
 
 # def submit_save_func():
@@ -609,13 +657,5 @@ st.markdown(txt)
 
 with st.expander('Version log'):
     st.markdown('**Version log**')
-    txt = '''*version 0.3 - NRN 13-02-2024 - ready for eksternal testing 
-    Post analysis is updated to include all privious analysis from MAP script.  
-    A result csv file is added. 
-    Graphs under statistics is added as an posibility.* 
-    '''
-    txt = '''*version 0.2 - NRN 08-02-2024  - prototype  
-    Change sidebar to only contain relevant input.  
-    change save function so name from input file is added to output name*'''
-    st.markdown(txt)
-    st.markdown('*version 0.1 - test fase - NRN 2024*')
+    
+    st.markdown(versions_log_txt)
