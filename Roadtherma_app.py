@@ -601,6 +601,12 @@ if run_script_checkbox:
 
 #%%
 st.divider()
+txt = '''
+*This application is developed for The Danish Road Directorate with the purpose of analysing thermal data obtained during road paving. *  
+*It builds upon the tool road therma found on https://github.com/roadtools/roadtherma *
+'''
+st.markdown(txt)
+
 with st.expander('Version log'):
     st.markdown('**Version log**')
     txt = '''*version 0.3 - NRN 13-02-2024 - ready for eksternal testing 
