@@ -19,6 +19,8 @@ from PIL import Image #til at åbne billeder
 from datetime import date #tid dato
 import json #til at gemme config filen
 import seaborn as sns
+import zipfile#til at gemme filer som zip
+import io#til at gemme filer som zip
 
 # from config import ConfigState
 from data import load_data, create_road_pixels, create_trimming_result_pixels
@@ -44,6 +46,9 @@ st.sidebar.image(logo_image, caption=None, width=250)
 ## VERSION af koden beskrives herunder. Printes nederst ##############
 current_version ='version 0.3 - NRN 13-02-2024 - ready for eksternal testing' #det der skrives i configuration filen
 versions_log_txt = '''
+NRN 14-02-2024  
+save as zip file is incluted. Figures is incluted in zip file. 
+
 *version 0.3 - NRN 13-02-2024 - ready for eksternal testing  
 Post analysis is updated to include all privious analysis from MAP script.  
 A result csv file is added.  
@@ -177,8 +182,8 @@ def counter_func():
 col1, col2 = st.columns(2)
 config['reader'] = None #starter med en tom
 #navnene på alle readers i readers.py gemmes her så de kan vælges
-reader_list = ['voegele_example','voegele_M119', 'voegele_M30', 'voegele_taulov','TF_old',
-               'TF_new', 'TF_notime','TF_time', 'TF_time_new','TF_time_K','moba','moba2','moba3']
+reader_list = ['voegele_M30','TF_time_K', 'voegele_example','voegele_M119', 'voegele_taulov','TF_old',
+               'TF_new', 'TF_notime','TF_time', 'TF_time_new','moba','moba2','moba3']
                
 with col1:
     st.markdown(':red[*Hvis readers ikke virker så snak med NRN. Hvis nogle skal slettes eller flyttes op i rækken kan vi også det. *] ')
@@ -191,7 +196,7 @@ if 'uploaded_data' not in st.session_state: #starter med at være tom
     st.session_state['uploaded_data']=None
 
 with col2:
-    st.write('Input file must be in uft-8. If this is not the case, change it manually in excel.')
+    st.write('Input file must be a csv file and in uft-8 encoding. If this is not the case, change it manually.')
     uploaded_file = st.file_uploader('Choose input file', key='uploadFile', on_change=counter_func )
 
 #load den oploadede fil ind baseret på readers
@@ -262,7 +267,6 @@ if run_trimming_checkbox:
     temperatures_trimmed, trim_result, lane_result, roadwidths = clean_data(temperatures, metadata, config)
     
     #-- herunder plottes rådata og trimmed data ud fra de parametre der sættes
-    
     fig_heatmaps, (ax1, ax2) = plt.subplots(ncols=2, sharey = True)
     plt.suptitle('Raw data', fontsize=10)
     ax1.set_title('All data'); ax2.set_title('Trimmed data')
@@ -270,13 +274,18 @@ if run_trimming_checkbox:
     ax1.set_ylabel('Distance [m]'); ax1.set_xlabel('Road width [meters]')
     #inkluder grænser på rå data figuren
     ax1.axvline(config['manual_trim_transversal_start'],color='k' );  ax1.axvline(config['manual_trim_transversal_end'],color='k' )
+    #inkluder longitudinal grænser også
+    ax1.axhline(config['manual_trim_longitudinal_start'], color='k'); ax1.axhline(config['manual_trim_longitudinal_end'], color='k')
+    ax1.set_ylim([ metadata.distance.iloc[-1],0 ])#når longitudinal linjer tilføjes sætter vi også en yaxis lim
+    
     trimmed_data_df = temperatures_trimmed.values
     nrn_functions.heatmaps_temperature_pixels(ax2, trimmed_data_df, metadata.distance[trim_result[2]:trim_result[3]], config['pixel_width'])
     ax2.set_xlabel('Road width [meters]')
     plt.tight_layout()
     st.pyplot(fig_heatmaps)
+    #---- slut på plot ---- 
     
-    st.write('Based on the temperatures, the paved road section is identified.')
+    st.write('Based on the temperatures and chosen trimming values, the paved road section is identified.')
     #laver en dataframe med True der hvor den varme vej er og False der hvor der er under 50 grader
     road_pixels = create_road_pixels(temperatures_trimmed.values, roadwidths)
         
@@ -413,28 +422,91 @@ if run_script_checkbox:
     
 #%%---- Herunder gemmes csv når man er klar
 st.subheader('Save results')
-st.write('When the analysis is good enough, the result can be saved by clicking on the buttons below.  ')
+st.write('When the analysis is good enough, the result can be saved either as one combined zip file or individually.')
 #----- 
 
 #Herunder er gemme funktion lavet med download knapper
+
 if run_script_checkbox:
+   #Laver de dataframes der gemmes senere -- 
+   save_raw_temp_df = nrn_functions.temperature_to_csv( temperatures_trimmed, metadata, road_pixels)
+   save_ma_detections_df = nrn_functions.detections_to_csv( temperatures_trimmed, metadata, road_pixels, moving_average_pixels)
+   save_gradient_detections_df = nrn_functions.detections_to_csv( temperatures_trimmed, metadata, road_pixels, gradient_pixels)
+   save_mean_temp_df = nrn_functions.temperature_mean_to_csv(temperatures_trimmed, road_pixels)
+   
+   input_file_name = st.session_state.uploadFile.name[:-4]+'_'#fjerner .csv
+   
+   st.markdown('The default name to appear in all saved files is extracted from the input file. It can be changed here. This affects all files in the zip folder and the individual files.')
+   input_file_name = st.text_input('Change default name', value=input_file_name)
+
+# if run_script_checkbox:
+#     st.write('gem figurer - hvis det skal gøres enkeltvis ')
+#     #gemmer figurer
+#     fn = 'heatmap_of_trimming.png' #navnet på figur
+#     img = io.BytesIO() #allokerer plads så det er mere effektivt
+#     fig_heatmaps.savefig(img, format='png') #gemmer figuren ned 
+    
+#     btn = st.download_button(
+#         label="Download image",
+#         data=img,
+#         file_name=fn,
+#         mime="image/png"
+#         )
+    
+if run_script_checkbox:
+    
+    st.markdown('### It is posible to download all files in one folder')
+    st.markdown('This will download several result files, configuration file and uploaded data. If you which to see the individual files before saving look at the individual file below ')
+    raw_data_df = st.session_state['uploaded_data'] #den uploadede datafil
+    
+    #herunder kan det hele gemmes i zip
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "x") as csv_zip:
+        csv_zip.writestr(input_file_name+"Results.csv", pd.DataFrame(statistics_dataframe).to_csv())
+        csv_zip.writestr(input_file_name+"raw_data_on_road.csv", pd.DataFrame(save_raw_temp_df).to_csv())
+        csv_zip.writestr(input_file_name+"moving_average_detections.csv", pd.DataFrame(save_ma_detections_df).to_csv())
+        csv_zip.writestr(input_file_name+"gradient_detections.csv", pd.DataFrame(save_gradient_detections_df).to_csv())
+        csv_zip.writestr(input_file_name+"mean_temperatures.csv", pd.DataFrame(save_mean_temp_df).to_csv())
+        csv_zip.writestr(input_file_name+"raw_data.csv", pd.DataFrame(raw_data_df).to_csv())
+        csv_zip.writestr(input_file_name+"configuration_values.json", json.dumps(config, indent=1))
+        #gemmer figurer
+        fig_name = input_file_name+'heatmap_of_trimming.png'
+        csv_zip.write(fig_name, fig_heatmaps.savefig(fig_name, format='png') )
+        fig_name = input_file_name+'identified_road.png'
+        csv_zip.write(fig_name, fig_heatmap1.savefig(fig_name, format='png') )
+        for fi in figures.keys():
+            fig_name = input_file_name+fi+'.png'
+            csv_zip.write(fig_name, figures[fi].savefig(fig_name, format='png') )
+        
+        
+    st.download_button(
+        label="Download zip",
+        data=buf.getvalue(),
+        file_name=input_file_name+"analysis_results.zip",
+        mime="application/zip",
+        )
+
+if run_script_checkbox:
+    st.markdown('### It is posible to download individual files')
+    
     @st.cache_data
     def convert_df(df):
         # IMPORTANT: Cache the conversion to prevent computation on every rerun
         return df.to_csv().encode('utf-8')
     
+    
     #
-    input_file_name = st.session_state.uploadFile.name[:-4]+'_'#fjerner .csv
+    
     
     ### Output med de ting vi gerne vil have fra entreprenørerne 
     st.write('#')
-    c1, c2 = st.columns([0.9, 0.1])
+    c1, c2 = st.columns([0.5, 0.5])
     with c1:
-        st.markdown('Save the results of post analysis of data')
+        st.markdown('Save the results of post analysis of data. You can look at the data below before saving.')
     save_name0 = st.text_input('output name', value=input_file_name+'Results.csv')#som default skal alle filer hedde navnen på inout filen + mere
     with c2:
         st.download_button(
-            label='Save',
+            label='Save results',
             data = convert_df(statistics_dataframe),
             file_name=save_name0,
             mime = 'text/csv'
@@ -444,15 +516,15 @@ if run_script_checkbox:
         
     #raw temperatures in pixels belonging to road
     st.write('#')
-    save_raw_temp_df = nrn_functions.temperature_to_csv( temperatures_trimmed, metadata, road_pixels)
-    c1, c2 = st.columns([0.9, 0.1])
+    
+    c1, c2 = st.columns([0.5, 0.5])
     with c1:
-        st.write('Save raw temperatures in pixels belonging to road')
+        st.write('Save raw temperatures in pixels belonging to road. You can look at the data below before saving.')
     save_name = st.text_input('output name', value=input_file_name+'raw_data_on_road.csv')#som default skal alle filer hedde navnen på inout filen + mere
             
     with c2:
         st.download_button(
-            label='Save',
+            label='Save raw temperatures in road',
             data = convert_df(save_raw_temp_df),
             file_name=save_name,
             mime = 'text/csv'
@@ -462,31 +534,29 @@ if run_script_checkbox:
     
     #Save all pixels categorized as either non-road, road or detected as having a temperature below a moving average
     st.write('#')#laver luft imellem knapperne
-    save_ma_detections_df = nrn_functions.detections_to_csv( temperatures_trimmed, metadata, road_pixels, moving_average_pixels)
-    c1, c2 = st.columns([0.9, 0.1])
+    c1, c2 = st.columns([0.5, 0.5])
     save_name1 = st.text_input('output name', value=input_file_name+'moving_average_detections.csv')
     with c2:
         st.download_button(
-            label='Save',
+            label='Save MA results',
             data = convert_df(save_ma_detections_df),
             file_name=save_name1,
             mime = 'text/csv'
             )
     with c1:
-        st.write('Save all pixels categorized as either non-road, road or detected as having a temperature below a moving average')
+        st.write('Save all pixels categorized as either non-road, road or detected as having a temperature below a moving average. You can look at the data below before saving. ')
     with st.expander('See dataframe before saving'):
         st.dataframe(save_ma_detections_df)
         
     #Save all pixels categorized as either non-road, road or gradient
     st.write('#')
-    save_gradient_detections_df = nrn_functions.detections_to_csv( temperatures_trimmed, metadata, road_pixels, gradient_pixels)
-    c1, c2 = st.columns([0.9, 0.1])
+    c1, c2 = st.columns([0.5, 0.5])
     with c1:
-        st.write('Save all pixels categorized as either non-road, road or gradient')
+        st.write('Save all pixels categorized as either non-road, road or gradient. You can look at the data below before saving.')
     save_name2 = st.text_input('output name', value=input_file_name+'gradient_detections.csv')
     with c2:
         st.download_button(
-            label='Save',
+            label='Save gradient results',
             data = convert_df(save_gradient_detections_df),
             file_name=save_name2,
             mime = 'text/csv'
@@ -496,14 +566,13 @@ if run_script_checkbox:
         
     #Save the mean temperature for each distance
     st.write('#')
-    save_mean_temp_df = nrn_functions.temperature_mean_to_csv(temperatures_trimmed, road_pixels)
-    c1, c2 = st.columns([0.9, 0.1])
+    c1, c2 = st.columns([0.5, 0.5])
     with c1:
-        st.write('Save the mean temperature for each distance')
+        st.write('Save the mean temperature for each distance. You can look at the data below before saving.')
     save_name3 = st.text_input('output name', value=input_file_name+'mean_temperatures.csv')
     with c2:
         st.download_button(
-            label='Save',
+            label='Save mean temperatures',
             data = convert_df(save_mean_temp_df),
             file_name=save_name3,
             mime = 'text/csv'
@@ -515,14 +584,14 @@ if run_script_checkbox:
     #Save config file Save the used parameter values in a configuration file. This enables usto run the exact same analysis again.
     st.write('#')
     config_json = json.dumps(config, indent=1)
-    c1, c2 = st.columns([0.9, 0.1])
+    c1, c2 = st.columns([0.5, 0.5])
     with c1: 
-        st.write('Save the used parameter values in a configuration file. This enables usto run the exact same analysis again.')
+        st.write('Save the used parameter values in a configuration file. This enables usto run the exact same analysis again. You can look at the file below before saving.')
     
     save_name4 = st.text_input('output name', value=input_file_name+'configuration_values.json')
     with c2:
         st.download_button(
-            label='Save',
+            label='Save configuration file',
             file_name=save_name4,
             mime = "application/json",
             data = config_json
@@ -530,34 +599,9 @@ if run_script_checkbox:
     with st.expander('See configuration file before saving'):
         st.write(config)
 
-import zipfile
-import io
 
-if run_script_checkbox:
-    
-    st.markdown('### It is posible to download all files in one folder')
-    st.markdown('This will download all result files, configuration file and uploaded data. ')
-    raw_data_df = st.session_state['uploaded_data'] #den uploadede datafil
-    
-    buf = io.BytesIO()
-    with zipfile.ZipFile(buf, "x") as csv_zip:
-        csv_zip.writestr(input_file_name+"Results.csv", pd.DataFrame(statistics_dataframe).to_csv())
-        csv_zip.writestr(input_file_name+"raw_data_on_road.csv", pd.DataFrame(save_raw_temp_df).to_csv())
-        csv_zip.writestr(input_file_name+"moving_average_detections.csv", pd.DataFrame(save_ma_detections_df).to_csv())
-        csv_zip.writestr(input_file_name+"gradient_detections.csv", pd.DataFrame(save_gradient_detections_df).to_csv())
-        csv_zip.writestr(input_file_name+"mean_temperatures.csv", pd.DataFrame(save_mean_temp_df).to_csv())
-        csv_zip.writestr(input_file_name+"raw_data.csv", pd.DataFrame(raw_data_df).to_csv())
-        csv_zip.writestr(input_file_name+"configuration_values.json", json.dumps(config, indent=1))
-        
-        
-        
-        
-    st.download_button(
-        label="Download zip",
-        data=buf.getvalue(),
-        file_name=input_file_name+"analysis_results.zip",
-        mime="application/zip",
-        )
+
+
 #%% Herunder er gemme funktionen der virker med en output sti. Dette virker kun når scriptet køres lokalt på en computer
 
 # def submit_save_func():
