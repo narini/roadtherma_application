@@ -186,7 +186,7 @@ reader_list = ['voegele_M30','TF_time_K', 'voegele_example','voegele_M119', 'voe
                'TF_new', 'TF_notime','TF_time', 'TF_time_new','moba','moba2','moba3']
                
 with col1:
-    st.markdown(':red[*Hvis readers ikke virker så snak med NRN. Hvis nogle skal slettes eller flyttes op i rækken kan vi også det. *] ')
+    st.write('Reader is used to load input file. The choice of reader depends on the input file\'s formatting.')
     config['reader'] = st.selectbox('Define which reader to use', reader_list,index=None, placeholder="Choose an option",key='reader',#['voegele_M30','TF_time_K']
                                     on_change=counter_func )
     
