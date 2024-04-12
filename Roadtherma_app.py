@@ -35,7 +35,7 @@ from cli import _iter_segments
 import nrn_functions #funktioner lavet primært til streamlit app
 # st.set_page_config(page_title=None, layout="wide")
 
-st.markdown('# Roadtherma user interface')
+st.markdown('# Roadtherma user interface TEST')
 st.write('')
 st.markdown('Program for analysing thermal data obtained during road paving')
 st.divider()
