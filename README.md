@@ -1,4 +1,5 @@
 # roadtherma_application
 Program for analysing thermal data obtained during road paving
 
-NRN 09-02-2024: use Roadtherma_app.py as main file now. Test file is no longer in use. 
+This is the source code for the roadtherma application, developed by the Danish Road directorate in 2024.  
+For acces to the user interface go to ...LINK... 
